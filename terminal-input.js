@@ -9,6 +9,13 @@ class TerminalInput {
         this.commandHistory = [];
         this.currentInput = '';
 
+        // Terminal session tracking
+        this.sessionId = `session-${Date.now()}`;
+        this.commandIndex = 0;
+        this.lastOutputId = null;
+        this.commandQueue = [];  // For sequential processing
+        this.isProcessing = false;
+
         this.init();
     }
 
@@ -98,74 +105,284 @@ class TerminalInput {
         this.processMessage(message);
     }
 
-    processMessage(message) {
-        // Show processing indicator
-        this.addToTerminal('system', 'Processing...');
+    async processMessage(message) {
+        // Add to queue for sequential processing
+        this.commandQueue.push(message);
 
-        // Simulate Claude Code response (in real integration, this would call actual Claude Code)
-        setTimeout(() => {
-            const response = this.generateResponse(message);
-            this.addToTerminal('assistant', response);
-
-            // Parse and send to flow
-            this.createNodes(message, response);
-        }, 500);
+        // Process queue if not already processing
+        if (!this.isProcessing) {
+            await this.processQueue();
+        }
     }
 
-    generateResponse(message) {
-        // Simple mock responses for testing
-        const responses = {
-            'hello': 'Hello! Claude Flow V2 is ready. I can help you visualize our conversation as nodes.',
-            'help': 'Available commands:\n• hello - Greeting\n• test - Generate test nodes\n• clear - Clear terminal\n• metacognitive - Test metacognitive flow',
-            'test': 'This is a test response. You should see this appear as nodes in the canvas!',
-            'metacognitive': '**Thought**: Let me analyze this systematically.\n**Emotion**: I\'m excited to demonstrate the visualization.\n**Imagination**: Imagine seeing all these cognitive nodes connected.\n**Belief**: Visual thinking aids understanding.\n**Action**: Create the visualization now.',
-        };
+    async processQueue() {
+        this.isProcessing = true;
 
-        // Check for known commands
-        const lowerMessage = message.toLowerCase();
-        for (const [key, value] of Object.entries(responses)) {
-            if (lowerMessage.includes(key)) {
-                return value;
-            }
+        while (this.commandQueue.length > 0) {
+            const message = this.commandQueue.shift();
+            await this.executeAndVisualize(message);
         }
 
-        // Default response
-        return `I received: "${message}"\n\nThis is a demo response. In production, this would be actual Claude Code output.`;
+        this.isProcessing = false;
     }
 
-    createNodes(userMessage, assistantResponse) {
-        // Use the parser to create nodes
-        if (!window.parser) {
+    async executeAndVisualize(message) {
+        const startTime = Date.now();
+
+        try {
+            // Show processing indicator
+            this.addToTerminal('system', 'Processing...');
+
+            // Handle special commands
+            if (message.startsWith('/')) {
+                await this.handleSpecialCommand(message);
+                // Remove processing message
+                const processingMsg = document.querySelector('.terminal-output .system-message');
+                if (processingMsg) {
+                    processingMsg.parentElement.remove();
+                }
+                return;
+            }
+
+            // Execute command
+            const result = await this.executeCommand(message);
+            const duration = Date.now() - startTime;
+
+            // Display in terminal
+            this.addToTerminal('assistant', result);
+
+            // Create nodes with full context
+            await this.createTerminalNodes(message, result, {
+                duration,
+                startTime
+            });
+
+        } catch (error) {
+            console.error('Terminal error:', error);
+
+            // Create error node even for execution failures
+            await this.createTerminalErrorNode(message, error, {
+                duration: Date.now() - startTime
+            });
+
+            this.addToTerminal('system', `❌ Error: ${error.message}`);
+        }
+    }
+
+    async handleSpecialCommand(command) {
+        const cmd = command.toLowerCase().trim();
+
+        if (cmd === '/help') {
+            const helpText = `Claude Flow Terminal - Available Commands:
+
+Shell Commands:
+  • Type any shell command to execute (ls, pwd, echo, etc.)
+  • Commands are executed in the server environment
+
+Claude Integration:
+  • Ask questions naturally to get AI responses
+  • Responses are visualized as nodes in the canvas
+
+Special Commands:
+  • /help - Show this help message
+  • /clear - Clear terminal history
+  • /status - Show system status
+  • Ctrl+L - Clear terminal
+  • ↑↓ - Navigate command history`;
+
+            this.addToTerminal('assistant', helpText);
+        } else if (cmd === '/clear') {
+            this.clearTerminal();
+        } else if (cmd === '/status') {
+            const status = `Server: Connected
+WebSocket: ${window.app?.ws?.readyState === WebSocket.OPEN ? 'Active' : 'Disconnected'}
+Nodes: ${window.app?.canvas?.getData()?.nodes?.length || 0}
+Edges: ${window.app?.canvas?.getData()?.edges?.length || 0}`;
+            this.addToTerminal('assistant', status);
+        } else {
+            this.addToTerminal('system', 'Unknown command. Type /help for available commands.');
+        }
+    }
+
+    determineCommandType(message) {
+        // Check if it's a known shell command
+        const shellCommands = [
+            'ls', 'pwd', 'cd', 'cat', 'echo', 'grep', 'find', 'ps', 'kill',
+            'mkdir', 'rm', 'cp', 'mv', 'touch', 'chmod', 'chown',
+            'which', 'whereis', 'whoami', 'date', 'cal', 'uptime',
+            'df', 'du', 'free', 'top', 'htop', 'curl', 'wget',
+            'git', 'npm', 'node', 'python', 'python3', 'pip',
+            'apt', 'pkg', 'termux-info', 'termux-setup-storage'
+        ];
+
+        const firstWord = message.trim().split(/\s+/)[0].toLowerCase();
+
+        // Check for pipes, redirects, or chained commands
+        if (message.includes('|') || message.includes('>') || message.includes('&&') || message.includes(';')) {
+            return 'shell';
+        }
+
+        // Check if first word is a known shell command
+        if (shellCommands.includes(firstWord)) {
+            return 'shell';
+        }
+
+        // Check if it looks like a file path
+        if (message.startsWith('./') || message.startsWith('/')) {
+            return 'shell';
+        }
+
+        // Everything else goes to Claude
+        return 'claude';
+    }
+
+    async executeCommand(message) {
+        try {
+            // Determine command type (shell vs claude)
+            const commandType = this.determineCommandType(message);
+
+            // Send command to server for execution
+            const response = await fetch('http://localhost:3000/api/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    command: message,
+                    type: commandType
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error (${response.status}): ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                // Command executed but failed
+                return `Command failed:\n${data.output || data.error}`;
+            }
+
+            return data.output || data.result || 'Command executed (no output)';
+        } catch (fetchError) {
+            if (fetchError.message.includes('fetch')) {
+                throw new Error('Cannot connect to server. Is it running?');
+            }
+            throw fetchError;
+        }
+    }
+
+    async createTerminalNodes(command, result, context) {
+        if (!window.app?.parser?.parseTerminalExecution) {
+            console.warn('Parser terminal support not available');
+            // Fallback to old method
+            return this.createNodesOld(command, result);
+        }
+
+        // Determine if command was successful
+        const isSuccess = !result.includes('Error:') && !result.includes('failed:') && !result.includes('Command failed');
+
+        // Parse execution result
+        const parseResult = window.app.parser.parseTerminalExecution(
+            command,
+            {
+                success: isSuccess,
+                output: result,
+                exit_code: isSuccess ? 0 : 1,
+                duration_ms: context.duration
+            },
+            {
+                session_id: this.sessionId,
+                command_index: this.commandIndex,
+                previous_output_id: this.lastOutputId,
+                cwd: '/current/path'
+            }
+        );
+
+        // Store last output ID for next sequential link
+        this.lastOutputId = parseResult.lastOutputId;
+        this.commandIndex++;
+
+        // Send to canvas
+        if (window.app?.ws?.readyState === WebSocket.OPEN) {
+            const success = window.app.sendMessage({
+                type: 'node_update',
+                nodes: parseResult.nodes,
+                edges: parseResult.edges
+            });
+
+            if (!success) {
+                this.directRenderNodes(parseResult.nodes, parseResult.edges);
+            }
+        } else {
+            this.directRenderNodes(parseResult.nodes, parseResult.edges);
+        }
+
+        // Show success notification
+        if (window.ui) {
+            const nodeType = parseResult.nodes[1].type === 'terminal_error' ? 'error' : 'success';
+            window.ui[nodeType === 'error' ? 'error' : 'success'](
+                'Nodes Created',
+                `Command ${nodeType === 'error' ? 'failed' : 'executed'} - ${parseResult.nodes.length} nodes added`
+            );
+        }
+    }
+
+    async createTerminalErrorNode(command, error, context) {
+        // Create error node for execution failures
+        await this.createTerminalNodes(command, `Error: ${error.message}`, context);
+    }
+
+    // Old method as fallback
+    createNodesOld(userMessage, assistantResponse) {
+        if (!window.app?.parser) {
             console.warn('Parser not available');
             return;
         }
 
-        const result = window.parser.parseInteraction(userMessage, assistantResponse);
+        const result = window.app.parser.parseInteraction(userMessage, assistantResponse);
 
-        // Send to server if WebSocket available
-        if (window.app && window.app.ws && window.app.ws.readyState === WebSocket.OPEN) {
+        if (window.app?.ws?.readyState === WebSocket.OPEN) {
             window.app.sendMessage({
                 type: 'node_update',
                 nodes: result.nodes,
                 edges: result.edges
             });
         } else {
-            // Fallback: update canvas directly
-            if (window.app && window.app.canvas) {
-                const currentData = window.app.canvas.getData();
-                const mergedData = {
-                    conversation_id: currentData.conversation_id || 'terminal-session',
-                    created_at: currentData.created_at || new Date().toISOString(),
-                    nodes: [...currentData.nodes, ...result.nodes],
-                    edges: [...currentData.edges, ...result.edges]
-                };
-                window.app.canvas.render(mergedData);
-            }
+            this.directRenderNodes(result.nodes, result.edges);
+        }
+    }
+
+    directRenderNodes(nodes, edges) {
+        if (!window.app?.canvas) {
+            console.error('Canvas not available');
+            return;
         }
 
-        // Show success message
-        if (window.ui) {
-            window.ui.success('Nodes Created', `${result.nodes.length} node(s) added to canvas`);
+        const currentData = window.app.canvas.getData();
+        const mergedData = {
+            conversation_id: currentData.conversation_id || this.sessionId,
+            created_at: currentData.created_at || new Date().toISOString(),
+            nodes: [...currentData.nodes, ...nodes],
+            edges: [...currentData.edges, ...edges]
+        };
+
+        window.app.canvas.render(mergedData);
+
+        // Auto-scroll to latest node
+        this.scrollToLatestNode();
+    }
+
+    scrollToLatestNode() {
+        const canvas = document.getElementById('canvas');
+        if (!canvas) return;
+
+        // Smooth scroll to bottom
+        const lastNode = document.querySelector('[data-node-type^="terminal_"]:last-child');
+        if (lastNode) {
+            lastNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
 

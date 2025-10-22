@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Terminal Debug Test</title>
+</head>
+<body>
+    <h1>Terminal Debug Test</h1>
+    <button onclick="testParser()">Test Parser</button>
+    <button onclick="testTerminal()">Test Terminal Flow</button>
+    <pre id="output"></pre>
+
+    <script src="parser-v2.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        function testParser() {
+            output.textContent = '';
+            log('=== Testing Parser ===');
+
+            try {
+                log('1. Creating ParserV2 instance...');
+                const parser = new ParserV2();
+                log('✅ Parser created: ' + typeof parser);
+
+                log('\n2. Testing parseTerminalExecution...');
+                const result = parser.parseTerminalExecution(
+                    'pwd',
+                    {success: true, output: '/home/user', exit_code: 0, duration_ms: 45},
+                    {session_id: 'test-123', command_index: 0}
+                );
+
+                log('✅ Result received');
+                log('Nodes: ' + result.nodes.length);
+                log('Edges: ' + result.edges.length);
+                log('Last output ID: ' + result.lastOutputId);
+
+                log('\n3. Node details:');
+                result.nodes.forEach((node, i) => {
+                    log(`  Node ${i}: type=${node.type}, id=${node.id}`);
+                    log(`    content=${node.content.slice(0, 50)}`);
+                });
+
+                log('\n4. Edge details:');
+                result.edges.forEach((edge, i) => {
+                    log(`  Edge ${i}: ${edge.source} -> ${edge.target} (${edge.type})`);
+                });
+
+                log('\n✅ Parser test PASSED');
+
+            } catch (error) {
+                log('❌ ERROR: ' + error.message);
+                log('Stack: ' + error.stack);
+            }
+        }
+
+        async function testTerminal() {
+            output.textContent = '';
+            log('=== Testing Terminal Flow ===');
+
+            try {
+                log('1. Creating parser...');
+                const parser = new ParserV2();
+
+                log('2. Simulating command execution...');
+                const command = 'pwd';
+                const output_text = '/data/data/com.termux/files/home/claude-flow';
+
+                log('3. Calling parseTerminalExecution...');
+                const result = parser.parseTerminalExecution(
+                    command,
+                    {
+                        success: true,
+                        output: output_text,
+                        exit_code: 0,
+                        duration_ms: 45
+                    },
+                    {
+                        session_id: 'test-session',
+                        command_index: 0,
+                        previous_output_id: null
+                    }
+                );
+
+                log('4. Preparing WebSocket message...');
+                const message = {
+                    type: 'node_update',
+                    nodes: result.nodes,
+                    edges: result.edges
+                };
+
+                log('5. Message to send:');
+                log(JSON.stringify(message, null, 2));
+
+                log('\n6. Sending to server...');
+                const response = await fetch('http://localhost:3000/api/nodes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(message)
+                });
+
+                const serverResponse = await response.json();
+                log('Server response: ' + JSON.stringify(serverResponse));
+
+                log('\n✅ Terminal flow test PASSED');
+                log('Check canvas at http://localhost:3000');
+
+            } catch (error) {
+                log('❌ ERROR: ' + error.message);
+                log('Stack: ' + error.stack);
+            }
+        }
+    </script>
+</body>
+</html>

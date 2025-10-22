@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { padding: 10px; margin: 5px; font-size: 16px; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Direct Integration Test</h1>
+
+    <button onclick="test1()">Test 1: Parser Exists?</button>
+    <button onclick="test2()">Test 2: Create Nodes</button>
+    <button onclick="test3()">Test 3: Send to Server</button>
+    <button onclick="clearLogs()">Clear</button>
+
+    <pre id="log"></pre>
+
+    <script src="parser-v2.js"></script>
+    <script src="canvas.js"></script>
+    <script src="ui-utils.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        const log = document.getElementById('log');
+
+        function clearLogs() {
+            log.textContent = '';
+        }
+
+        function addLog(msg, isError = false) {
+            const line = document.createElement('div');
+            line.className = isError ? 'error' : 'success';
+            line.textContent = msg;
+            log.appendChild(line);
+            console.log(msg);
+        }
+
+        function test1() {
+            clearLogs();
+            addLog('=== Test 1: Checking Parser ===');
+
+            addLog('window.ParserV2 type: ' + typeof window.ParserV2);
+            addLog('window.app type: ' + typeof window.app);
+            addLog('window.app.parser type: ' + typeof window.app?.parser);
+
+            if (window.app?.parser) {
+                addLog('✅ app.parser exists');
+                addLog('parseTerminalExecution type: ' + typeof window.app.parser.parseTerminalExecution);
+
+                if (typeof window.app.parser.parseTerminalExecution === 'function') {
+                    addLog('✅ parseTerminalExecution is available!');
+                } else {
+                    addLog('❌ parseTerminalExecution NOT available', true);
+                }
+            } else {
+                addLog('❌ app.parser does NOT exist', true);
+            }
+        }
+
+        function test2() {
+            clearLogs();
+            addLog('=== Test 2: Creating Terminal Nodes ===');
+
+            try {
+                const result = window.app.parser.parseTerminalExecution(
+                    'pwd',
+                    {
+                        success: true,
+                        output: '/data/data/com.termux/files/home/claude-flow',
+                        exit_code: 0,
+                        duration_ms: 45
+                    },
+                    {
+                        session_id: 'test-123',
+                        command_index: 0,
+                        previous_output_id: null
+                    }
+                );
+
+                addLog('✅ Nodes created!');
+                addLog('Nodes: ' + result.nodes.length);
+                addLog('Edges: ' + result.edges.length);
+
+                result.nodes.forEach((node, i) => {
+                    addLog(`  Node ${i}: ${node.type} - ${node.id}`);
+                });
+
+                result.edges.forEach((edge, i) => {
+                    addLog(`  Edge ${i}: ${edge.source} -> ${edge.target}`);
+                });
+
+                window.testNodes = result;
+                addLog('\n✅ Saved to window.testNodes');
+
+            } catch (error) {
+                addLog('❌ ERROR: ' + error.message, true);
+                addLog(error.stack, true);
+            }
+        }
+
+        async function test3() {
+            clearLogs();
+            addLog('=== Test 3: Sending to Server ===');
+
+            if (!window.testNodes) {
+                addLog('❌ Run Test 2 first!', true);
+                return;
+            }
+
+            try {
+                addLog('Sending nodes to /api/nodes...');
+
+                const response = await fetch('http://localhost:3000/api/nodes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        nodes: window.testNodes.nodes,
+                        edges: window.testNodes.edges
+                    })
+                });
+
+                const result = await response.json();
+                addLog('Server response: ' + JSON.stringify(result, null, 2));
+
+                if (result.success) {
+                    addLog('✅ Nodes sent successfully!');
+                    addLog('Nodes added: ' + result.nodes_added);
+                    addLog('Edges added: ' + result.edges_added);
+                    addLog('\n🎉 Now refresh main page to see nodes!');
+                } else {
+                    addLog('❌ Server returned error', true);
+                }
+
+            } catch (error) {
+                addLog('❌ ERROR: ' + error.message, true);
+                addLog(error.stack, true);
+            }
+        }
+
+        // Auto-run test 1 on load
+        setTimeout(() => {
+            test1();
+        }, 500);
+    </script>
+</body>
+</html>

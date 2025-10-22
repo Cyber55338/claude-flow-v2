@@ -883,6 +883,123 @@ class ParserV2 {
             }
         };
     }
+
+    /**
+     * Parse Terminal Execution
+     * Creates input and output/error nodes for terminal commands
+     *
+     * @param {string} command - The command that was executed
+     * @param {object} result - Execution result { success, output, exit_code, duration_ms }
+     * @param {object} metadata - Additional context { session_id, command_index, previous_output_id, cwd }
+     * @returns {object} { nodes, edges, lastOutputId }
+     */
+    parseTerminalExecution(command, result, metadata) {
+        const nodes = [];
+        const edges = [];
+        const timestamp = new Date().toISOString();
+
+        // 1. Create input node
+        const inputId = `node-cmd-${Date.now()}-${this.nodeIdCounter++}`;
+        const inputNode = {
+            id: inputId,
+            type: 'terminal_input',
+            content: command,
+            parent_id: metadata.previous_output_id || null,
+            level: metadata.command_index || 0,
+            position: { x: 400, y: 0 }, // Will be laid out by canvas
+            metadata: {
+                timestamp,
+                terminal_session: metadata.session_id || 'default',
+                command_index: metadata.command_index || 0,
+                status: result.success ? 'complete' : 'error',
+                working_directory: metadata.cwd || '/current/path',
+                command: command
+            }
+        };
+        nodes.push(inputNode);
+
+        // 2. Create output or error node
+        const outputId = `node-out-${Date.now()}-${this.nodeIdCounter++}`;
+        const isError = !result.success || result.exit_code !== 0;
+        const outputNode = {
+            id: outputId,
+            type: isError ? 'terminal_error' : 'terminal_output',
+            content: this.truncateOutput(result.output || '', 5),
+            parent_id: inputId,
+            level: metadata.command_index || 0,
+            position: { x: 400, y: 0 },
+            metadata: {
+                timestamp,
+                terminal_session: metadata.session_id || 'default',
+                parent_command: inputId,
+                exit_code: result.exit_code !== undefined ? result.exit_code : (result.success ? 0 : 1),
+                duration_ms: result.duration_ms || 0,
+                output_length: (result.output || '').length,
+                truncated: (result.output || '').split('\n').length > 5,
+                error_message: isError ? result.output : null
+            }
+        };
+        nodes.push(outputNode);
+
+        // 3. Create edge from input to output
+        edges.push({
+            id: `edge-${inputId}-${outputId}`,
+            from: inputId,
+            to: outputId,
+            type: 'command_output',
+            style: 'solid',
+            color: isError ? '#ef4444' : '#06b6d4',
+            metadata: {
+                relationship: 'command_to_output',
+                timestamp
+            }
+        });
+
+        // 4. Create sequential edge if there's a previous output
+        if (metadata.previous_output_id) {
+            edges.push({
+                id: `edge-seq-${metadata.previous_output_id}-${inputId}`,
+                from: metadata.previous_output_id,
+                to: inputId,
+                type: 'sequential_flow',
+                style: 'dashed',
+                color: '#6366f1',
+                metadata: {
+                    relationship: 'sequential_flow',
+                    timestamp
+                }
+            });
+        }
+
+        return {
+            nodes,
+            edges,
+            lastOutputId: outputId // For next sequential link
+        };
+    }
+
+    /**
+     * Truncate Output
+     * Truncates command output to specified number of lines
+     *
+     * @param {string} output - The output text to truncate
+     * @param {number} maxLines - Maximum number of lines to keep
+     * @returns {string} Truncated output with indicator if truncated
+     */
+    truncateOutput(output, maxLines = 5) {
+        if (!output || typeof output !== 'string') {
+            return '';
+        }
+
+        const lines = output.split('\n');
+        if (lines.length <= maxLines) {
+            return output;
+        }
+
+        const truncated = lines.slice(0, maxLines).join('\n');
+        const remaining = lines.length - maxLines;
+        return `${truncated}\n... (${remaining} more line${remaining > 1 ? 's' : ''})`;
+    }
 }
 
 // Export for use in app.js

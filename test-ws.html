@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head><title>WebSocket Test</title></head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <pre id="log"></pre>
+
+    <script>
+        const log = document.getElementById('log');
+
+        function addLog(msg) {
+            log.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        addLog('Testing WebSocket connection...\n');
+        addLog('Host: ' + window.location.host);
+        addLog('Protocol: ' + window.location.protocol);
+
+        const wsUrl = 'ws://' + window.location.host;
+        addLog('WebSocket URL: ' + wsUrl + '\n');
+
+        try {
+            addLog('Creating WebSocket...');
+            const ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                addLog('✅ CONNECTED!');
+                addLog('ReadyState: ' + ws.readyState);
+
+                // Send a test message
+                addLog('\nSending subscribe message...');
+                ws.send(JSON.stringify({ type: 'subscribe' }));
+            };
+
+            ws.onmessage = (event) => {
+                addLog('📥 Received: ' + event.data);
+            };
+
+            ws.onerror = (error) => {
+                addLog('❌ ERROR: ' + error);
+                addLog('Error type: ' + error.type);
+                addLog('Error message: ' + error.message);
+            };
+
+            ws.onclose = (event) => {
+                addLog('❌ CLOSED');
+                addLog('Code: ' + event.code);
+                addLog('Reason: ' + event.reason);
+                addLog('Clean: ' + event.wasClean);
+            };
+
+            // Timeout check
+            setTimeout(() => {
+                addLog('\nAfter 3 seconds:');
+                addLog('ReadyState: ' + ws.readyState + ' (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED)');
+
+                if (ws.readyState !== 1) {
+                    addLog('\n❌ WebSocket failed to connect!');
+                    addLog('This is why canvas updates don\'t work.');
+                }
+            }, 3000);
+
+        } catch (error) {
+            addLog('❌ EXCEPTION: ' + error.message);
+            addLog('Stack: ' + error.stack);
+        }
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 class App {
     constructor() {
         this.canvas = null;
-        this.parser = new Parser();
+        this.parser = new ParserV2(); // Use ParserV2 for terminal support
         this.ws = null;
         this.wsUrl = `ws://${window.location.host}`;
         this.reconnectInterval = 2000; // Reconnect every 2 seconds

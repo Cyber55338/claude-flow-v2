@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edge Flow Diagnostic</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        pre { background: #2a2a2a; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .step { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 5px; }
+        .step-title { font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #60a5fa; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #60a5fa; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #2563eb; }
+        .data-box { background: #1a1a1a; padding: 10px; margin: 10px 0; border-left: 3px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Edge Flow Diagnostic</h1>
+    <p>This test traces edges through the entire flow pipeline</p>
+
+    <button onclick="runFullDiagnostic()">▶ RUN FULL DIAGNOSTIC</button>
+    <button onclick="clearResults()">🗑 Clear</button>
+
+    <div id="results"></div>
+
+    <script src="parser-v2.js?v=5"></script>
+    <script src="canvas.js?v=5"></script>
+    <script src="ui-utils.js?v=5"></script>
+    <script src="app.js?v=5"></script>
+    <script src="terminal-input.js?v=5"></script>
+
+    <script>
+        const results = document.getElementById('results');
+        let stepCount = 0;
+
+        function clearResults() {
+            results.innerHTML = '';
+            stepCount = 0;
+        }
+
+        function log(stepTitle, message, type = 'info', data = null) {
+            const step = document.createElement('div');
+            step.className = 'step';
+
+            let html = `<div class="step-title">${stepTitle}</div>`;
+            html += `<div class="${type}">${message}</div>`;
+
+            if (data) {
+                html += `<div class="data-box"><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+            }
+
+            step.innerHTML = html;
+            results.appendChild(step);
+            console.log(`[${stepTitle}]`, message, data);
+        }
+
+        async function runFullDiagnostic() {
+            clearResults();
+            log('🚀 Starting', 'Full edge flow diagnostic', 'info');
+
+            // Wait for components to initialize
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // STEP 1: Test Parser
+            log('Step 1', 'Testing Parser Edge Creation', 'info');
+
+            if (!window.app?.parser) {
+                log('Step 1 ❌', 'Parser not available!', 'error');
+                return;
+            }
+
+            const testCommand = 'echo "test"';
+            const testResult = {
+                success: true,
+                output: 'test',
+                exit_code: 0,
+                duration_ms: 10
+            };
+            const testMetadata = {
+                session_id: 'diagnostic-test',
+                command_index: 0,
+                previous_output_id: null,
+                cwd: '/test/path'
+            };
+
+            const parseResult = window.app.parser.parseTerminalExecution(
+                testCommand,
+                testResult,
+                testMetadata
+            );
+
+            log('Step 1 ✓',
+                `Parser created ${parseResult.nodes.length} nodes and ${parseResult.edges.length} edges`,
+                parseResult.edges.length > 0 ? 'success' : 'error',
+                { nodes: parseResult.nodes.length, edges: parseResult.edges.length, edgeDetails: parseResult.edges }
+            );
+
+            if (parseResult.edges.length === 0) {
+                log('Step 1 ❌', 'PARSER IS NOT CREATING EDGES!', 'error');
+                return;
+            }
+
+            // STEP 2: Test WebSocket Connection
+            log('Step 2', 'Checking WebSocket Connection', 'info');
+
+            if (!window.app?.ws) {
+                log('Step 2 ❌', 'WebSocket not initialized!', 'error');
+                return;
+            }
+
+            if (window.app.ws.readyState !== WebSocket.OPEN) {
+                log('Step 2 ❌', `WebSocket not open! State: ${window.app.ws.readyState}`, 'error');
+                return;
+            }
+
+            log('Step 2 ✓', 'WebSocket is connected and ready', 'success');
+
+            // STEP 3: Intercept WebSocket send
+            log('Step 3', 'Intercepting WebSocket Message', 'info');
+
+            let interceptedMessage = null;
+            const originalSend = window.app.ws.send.bind(window.app.ws);
+
+            window.app.ws.send = function(data) {
+                interceptedMessage = JSON.parse(data);
+                log('Step 3 📤', 'Message being sent over WebSocket:', 'info', interceptedMessage);
+                return originalSend(data);
+            };
+
+            // STEP 4: Send via app.sendMessage
+            log('Step 4', 'Sending nodes and edges via app.sendMessage', 'info');
+
+            const messageToSend = {
+                type: 'node_update',
+                nodes: parseResult.nodes,
+                edges: parseResult.edges
+            };
+
+            log('Step 4 📝', 'Message prepared:', 'info', messageToSend);
+
+            const sendSuccess = window.app.sendMessage(messageToSend);
+
+            if (!sendSuccess) {
+                log('Step 4 ❌', 'sendMessage returned false!', 'error');
+                return;
+            }
+
+            log('Step 4 ✓', 'sendMessage returned true', 'success');
+
+            // Check what was actually intercepted
+            if (!interceptedMessage) {
+                log('Step 4 ❌', 'No message was intercepted!', 'error');
+                return;
+            }
+
+            if (!interceptedMessage.edges || interceptedMessage.edges.length === 0) {
+                log('Step 4 ❌', 'Intercepted message HAS NO EDGES!', 'error', interceptedMessage);
+                return;
+            }
+
+            log('Step 4 ✓',
+                `Intercepted message has ${interceptedMessage.edges.length} edges`,
+                'success'
+            );
+
+            // STEP 5: Wait for server to process
+            log('Step 5', 'Waiting for server to process...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // STEP 6: Check server state
+            log('Step 6', 'Querying server state', 'info');
+
+            const serverResponse = await fetch('/api/state');
+            const serverData = await serverResponse.json();
+
+            log('Step 6 📊', 'Server state retrieved:', 'info', {
+                nodes: serverData.flow_data.nodes.length,
+                edges: serverData.flow_data.edges.length
+            });
+
+            if (serverData.flow_data.edges.length === 0) {
+                log('Step 6 ❌', 'SERVER HAS NO EDGES!', 'error', serverData.flow_data);
+                return;
+            }
+
+            log('Step 6 ✓',
+                `Server has ${serverData.flow_data.edges.length} edges stored`,
+                'success'
+            );
+
+            // STEP 7: Check canvas
+            log('Step 7', 'Checking canvas rendering', 'info');
+
+            const canvasData = window.app.canvas.getData();
+
+            log('Step 7 🎨', 'Canvas data:', 'info', {
+                nodes: canvasData.nodes.length,
+                edges: canvasData.edges.length
+            });
+
+            if (canvasData.edges.length === 0) {
+                log('Step 7 ⚠', 'Canvas has no edges! But server might.', 'warning');
+            } else {
+                log('Step 7 ✓', `Canvas has ${canvasData.edges.length} edges`, 'success');
+            }
+
+            // FINAL SUMMARY
+            log('📊 SUMMARY', '', 'info');
+
+            const allPassed =
+                parseResult.edges.length > 0 &&
+                interceptedMessage?.edges?.length > 0 &&
+                serverData.flow_data.edges.length > 0;
+
+            if (allPassed) {
+                log('🎉 SUCCESS', 'All edge transmission steps passed!', 'success', {
+                    parser: `✅ ${parseResult.edges.length} edges`,
+                    websocket: `✅ ${interceptedMessage.edges.length} edges`,
+                    server: `✅ ${serverData.flow_data.edges.length} edges`,
+                    canvas: `${canvasData.edges.length > 0 ? '✅' : '⚠'} ${canvasData.edges.length} edges`
+                });
+            } else {
+                log('❌ FAILURE', 'Edge transmission failed at some step!', 'error', {
+                    parser: parseResult.edges.length > 0 ? '✅' : '❌',
+                    websocket: interceptedMessage?.edges?.length > 0 ? '✅' : '❌',
+                    server: serverData.flow_data.edges.length > 0 ? '✅' : '❌',
+                    canvas: canvasData.edges.length > 0 ? '✅' : '❌'
+                });
+            }
+        }
+
+        // Auto-run after initialization
+        setTimeout(() => {
+            if (window.app?.ws?.readyState === 1) {
+                log('✅ Ready', 'All components loaded. Click "RUN FULL DIAGNOSTIC"', 'success');
+            } else {
+                log('⏳ Waiting', 'Waiting for WebSocket...', 'warning');
+                setTimeout(() => {
+                    if (window.app?.ws?.readyState === 1) {
+                        log('✅ Ready', 'WebSocket connected. Click "RUN FULL DIAGNOSTIC"', 'success');
+                    } else {
+                        log('❌ Error', 'WebSocket failed to connect', 'error');
+                    }
+                }, 3000);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

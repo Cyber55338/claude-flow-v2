@@ -148,9 +148,9 @@
                             </svg>
                             <span class="text-accent-success font-semibold">Claude Flow Terminal</span>
                         </div>
-                        <p class="info-message text-gray-400 text-sm pl-7">Type commands or chat with Claude Code here.</p>
+                        <p class="info-message text-gray-400 text-sm pl-7">Execute shell commands and visualize outputs as nodes.</p>
                         <p class="info-message text-gray-400 text-sm pl-7">
-                            Use <code class="inline-code">//flow:save</code> to capture nodes manually.
+                            Type <code class="inline-code">/help</code> for available commands.
                         </p>
 
                         <!-- INTERACTIVE INPUT BOX -->
@@ -159,13 +159,13 @@
                                 <span style="color: #4CAF50; font-weight: bold; font-size: 22px;">$</span>
                                 <input type="text"
                                        id="terminal-input"
-                                       placeholder="✨ TYPE YOUR MESSAGE HERE and press ENTER!"
+                                       placeholder="Type a command (try: pwd, ls, /help) and press ENTER"
                                        autocomplete="off"
                                        autofocus
                                        style="flex: 1; background: #1a1f2e; border: 2px solid #4CAF50; border-radius: 6px; color: #fff; font-family: monospace; font-size: 16px; outline: none; padding: 12px; font-weight: bold;" />
                             </div>
                             <div style="margin-top: 12px; font-size: 14px; color: #4CAF50; text-align: center; font-weight: bold;">
-                                ⚡ Try typing: hello | test | metacognitive
+                                ⚡ Try: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; margin: 0 3px;">pwd</code> <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; margin: 0 3px;">ls -la</code> <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; margin: 0 3px;">/help</code> <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; margin: 0 3px;">/status</code>
                             </div>
                         </div>
                     </div>
@@ -210,6 +210,20 @@
                             <linearGradient id="autoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
                                 <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+                            </linearGradient>
+
+                            <!-- Terminal Node Gradients -->
+                            <linearGradient id="terminalInputGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="terminalOutputGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:#0891b2;stop-opacity:0.8" />
+                            </linearGradient>
+                            <linearGradient id="terminalErrorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.9" />
+                                <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.9" />
                             </linearGradient>
 
                             <!-- Glow Filters -->
@@ -372,7 +386,7 @@
 
     <!-- Scripts -->
     <script src="ui-utils.js"></script>
-    <script src="parser.js"></script>
+    <script src="parser-v2.js"></script>
     <script src="canvas.js"></script>
 
     <!-- EPIC 5: Interaction Components -->

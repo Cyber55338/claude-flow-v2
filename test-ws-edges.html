@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Edge Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        pre { background: #000; padding: 10px; border: 1px solid #0f0; }
+        button { background: #0f0; color: #000; padding: 10px 20px; margin: 10px; border: none; cursor: pointer; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Edge Transmission Test</h1>
+    <button onclick="testWebSocket()">TEST WEBSOCKET</button>
+    <button onclick="checkServer()">CHECK SERVER</button>
+    <pre id="log"></pre>
+
+    <script>
+        const log = document.getElementById('log');
+
+        function addLog(msg, isError = false) {
+            const line = document.createElement('div');
+            line.className = isError ? 'error' : 'success';
+            line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            log.appendChild(line);
+            console.log(msg);
+        }
+
+        async function testWebSocket() {
+            log.textContent = '';
+            addLog('=== WEBSOCKET EDGE TEST ===');
+
+            // Connect to WebSocket
+            addLog('Connecting to WebSocket...');
+            const ws = new WebSocket('ws://' + window.location.host);
+
+            ws.onopen = () => {
+                addLog('✅ Connected!');
+
+                // Wait a moment then send test message
+                setTimeout(() => {
+                    const testMessage = {
+                        type: 'node_update',
+                        nodes: [
+                            { id: 'ws-test-1', type: 'terminal_input', content: 'websocket test' },
+                            { id: 'ws-test-2', type: 'terminal_output', content: 'websocket output' }
+                        ],
+                        edges: [
+                            { id: 'ws-edge-1', from: 'ws-test-1', to: 'ws-test-2', type: 'command_output' }
+                        ]
+                    };
+
+                    addLog('📤 Sending message with ' + testMessage.nodes.length + ' nodes and ' + testMessage.edges.length + ' edges');
+                    addLog('Message: ' + JSON.stringify(testMessage, null, 2));
+
+                    ws.send(JSON.stringify(testMessage));
+                    addLog('✅ Message sent!');
+
+                    // Check server after 1 second
+                    setTimeout(checkServer, 1000);
+                }, 1000);
+            };
+
+            ws.onerror = (error) => {
+                addLog('❌ WebSocket error: ' + error, true);
+            };
+
+            ws.onclose = () => {
+                addLog('WebSocket closed');
+            };
+
+            ws.onmessage = (event) => {
+                addLog('📥 Received: ' + event.data.substring(0, 200));
+            };
+        }
+
+        async function checkServer() {
+            addLog('\n--- Checking Server State ---');
+
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+
+                addLog('Server has:');
+                addLog('  Nodes: ' + data.flow_data.nodes.length);
+                addLog('  Edges: ' + data.flow_data.edges.length);
+
+                if (data.flow_data.edges.length > 0) {
+                    addLog('\n✅ SUCCESS! Server has edges:');
+                    data.flow_data.edges.forEach(edge => {
+                        addLog('  - ' + JSON.stringify(edge));
+                    });
+                } else {
+                    addLog('\n❌ FAILURE! Server has NO edges!', true);
+                    addLog('Nodes on server:', false);
+                    data.flow_data.nodes.forEach(node => {
+                        addLog('  - ' + node.id + ': ' + node.type);
+                    });
+                }
+            } catch (error) {
+                addLog('❌ Error checking server: ' + error.message, true);
+            }
+        }
+    </script>
+</body>
+</html>

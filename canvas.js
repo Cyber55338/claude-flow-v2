@@ -200,8 +200,37 @@ class Canvas {
             nodesByParent[parent].push(node);
         });
 
-        // Layout algorithm
-        nodesWithPositions.forEach((node, index) => {
+        // Separate terminal nodes from regular nodes
+        const terminalNodes = nodesWithPositions.filter(n => n.type?.startsWith('terminal_'));
+        const regularNodes = nodesWithPositions.filter(n => !n.type?.startsWith('terminal_'));
+
+        // Layout terminal nodes sequentially first
+        if (terminalNodes.length > 0) {
+            // Sort by command_index
+            terminalNodes.sort((a, b) => {
+                const aIndex = a.metadata?.command_index || 0;
+                const bIndex = b.metadata?.command_index || 0;
+                return aIndex - bIndex;
+            });
+
+            terminalNodes.forEach((node) => {
+                node.x = this.config.startX;
+                node.y = currentY;
+
+                // Different spacing based on node type
+                if (node.type === 'terminal_input') {
+                    currentY += 100; // Smaller gap between input and output
+                } else if (node.type === 'terminal_output' || node.type === 'terminal_error') {
+                    // Calculate height based on content
+                    const lines = (node.content || '').split('\n').length;
+                    const height = Math.min(120, 40 + lines * 16);
+                    currentY += height + 50; // Larger gap before next command
+                }
+            });
+        }
+
+        // Layout regular nodes
+        regularNodes.forEach((node, index) => {
             if (node.type === 'input') {
                 // Input nodes centered
                 node.x = this.config.startX;
@@ -242,6 +271,16 @@ class Canvas {
      * Render a single node
      */
     renderNode(node) {
+        // Check for terminal node types and use specialized rendering
+        if (node.type === 'terminal_input') {
+            return this.renderTerminalInputNode(node);
+        } else if (node.type === 'terminal_output') {
+            return this.renderTerminalOutputNode(node);
+        } else if (node.type === 'terminal_error') {
+            return this.renderTerminalErrorNode(node);
+        }
+
+        // Regular node rendering
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'node');
         g.setAttribute('data-node-id', node.id);
@@ -279,13 +318,193 @@ class Canvas {
             g.appendChild(content);
         });
 
-        // Node click handler - removed, now handled by interactions.js
-        // g.addEventListener('click', () => {
-        //     this.onNodeClick(node);
-        // });
-
         g.appendChild(rect);
         g.appendChild(title);
+
+        this.nodesGroup.appendChild(g);
+    }
+
+    /**
+     * Render Terminal Input Node
+     */
+    renderTerminalInputNode(node) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'node terminal-input');
+        g.setAttribute('data-node-id', node.id);
+        g.setAttribute('data-node-type', 'terminal_input');
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+        // Background rectangle
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('width', '200');
+        rect.setAttribute('height', '80');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', 'url(#terminalInputGradient)');
+        rect.setAttribute('stroke', '#22c55e');
+        rect.setAttribute('stroke-width', '2');
+        g.appendChild(rect);
+
+        // Status indicator
+        const statusColor = {
+            'pending': '#fbbf24',
+            'executing': '#3b82f6',
+            'complete': '#22c55e',
+            'error': '#ef4444'
+        }[node.metadata?.status || 'complete'];
+
+        const statusCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        statusCircle.setAttribute('cx', '15');
+        statusCircle.setAttribute('cy', '15');
+        statusCircle.setAttribute('r', '5');
+        statusCircle.setAttribute('fill', statusColor);
+        g.appendChild(statusCircle);
+
+        // Command text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', '30');
+        text.setAttribute('y', '20');
+        text.setAttribute('fill', '#ffffff');
+        text.setAttribute('font-family', "'Fira Code', 'Consolas', monospace");
+        text.setAttribute('font-size', '13');
+        text.setAttribute('font-weight', 'bold');
+        text.textContent = `$ ${node.content.slice(0, 30)}`;
+        g.appendChild(text);
+
+        // Timestamp
+        const timestamp = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        timestamp.setAttribute('x', '10');
+        timestamp.setAttribute('y', '65');
+        timestamp.setAttribute('fill', '#9ca3af');
+        timestamp.setAttribute('font-size', '10');
+        timestamp.textContent = node.metadata?.timestamp ? new Date(node.metadata.timestamp).toLocaleTimeString() : '';
+        g.appendChild(timestamp);
+
+        // Command index
+        const index = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        index.setAttribute('x', '180');
+        index.setAttribute('y', '65');
+        index.setAttribute('fill', '#9ca3af');
+        index.setAttribute('font-size', '10');
+        index.setAttribute('text-anchor', 'end');
+        index.textContent = `#${node.metadata?.command_index ?? 0}`;
+        g.appendChild(index);
+
+        this.nodesGroup.appendChild(g);
+    }
+
+    /**
+     * Render Terminal Output Node
+     */
+    renderTerminalOutputNode(node) {
+        const lines = node.content.split('\n');
+        const height = Math.min(120, 40 + lines.length * 16);
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'node terminal-output');
+        g.setAttribute('data-node-id', node.id);
+        g.setAttribute('data-node-type', 'terminal_output');
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+        // Background rectangle
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('width', '200');
+        rect.setAttribute('height', height);
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', 'url(#terminalOutputGradient)');
+        rect.setAttribute('stroke', '#06b6d4');
+        rect.setAttribute('stroke-width', '2');
+        g.appendChild(rect);
+
+        // Success icon (checkmark)
+        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        iconPath.setAttribute('d', 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z');
+        iconPath.setAttribute('stroke', '#22c55e');
+        iconPath.setAttribute('stroke-width', '2');
+        iconPath.setAttribute('fill', 'none');
+        iconPath.setAttribute('transform', 'translate(5, 5) scale(0.8)');
+        g.appendChild(iconPath);
+
+        // Output text (multiline)
+        let yOffset = 25;
+        lines.slice(0, 5).forEach((line) => {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', '30');
+            text.setAttribute('y', yOffset);
+            text.setAttribute('fill', '#e5e7eb');
+            text.setAttribute('font-family', "'Fira Code', 'Consolas', monospace");
+            text.setAttribute('font-size', '11');
+            text.textContent = line.slice(0, 30);
+            g.appendChild(text);
+            yOffset += 16;
+        });
+
+        // Metadata
+        const metadata = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        metadata.setAttribute('x', '10');
+        metadata.setAttribute('y', height - 10);
+        metadata.setAttribute('fill', '#9ca3af');
+        metadata.setAttribute('font-size', '9');
+        metadata.textContent = `exit: ${node.metadata?.exit_code ?? 0} | ${node.metadata?.duration_ms ?? 0}ms`;
+        g.appendChild(metadata);
+
+        this.nodesGroup.appendChild(g);
+    }
+
+    /**
+     * Render Terminal Error Node
+     */
+    renderTerminalErrorNode(node) {
+        const lines = node.content.split('\n');
+        const height = Math.min(120, 40 + lines.length * 16);
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'node terminal-error');
+        g.setAttribute('data-node-id', node.id);
+        g.setAttribute('data-node-type', 'terminal_error');
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+        // Background rectangle (red)
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('width', '200');
+        rect.setAttribute('height', height);
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', 'url(#terminalErrorGradient)');
+        rect.setAttribute('stroke', '#ef4444');
+        rect.setAttribute('stroke-width', '2');
+        g.appendChild(rect);
+
+        // Error icon (X)
+        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        iconPath.setAttribute('d', 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z');
+        iconPath.setAttribute('stroke', '#ef4444');
+        iconPath.setAttribute('stroke-width', '2');
+        iconPath.setAttribute('fill', 'none');
+        iconPath.setAttribute('transform', 'translate(5, 5) scale(0.8)');
+        g.appendChild(iconPath);
+
+        // Error text (multiline, red-tinted)
+        let yOffset = 25;
+        lines.slice(0, 5).forEach((line) => {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', '30');
+            text.setAttribute('y', yOffset);
+            text.setAttribute('fill', '#fca5a5');
+            text.setAttribute('font-family', "'Fira Code', 'Consolas', monospace");
+            text.setAttribute('font-size', '11');
+            text.setAttribute('font-weight', 'bold');
+            text.textContent = line.slice(0, 30);
+            g.appendChild(text);
+            yOffset += 16;
+        });
+
+        // Metadata
+        const metadata = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        metadata.setAttribute('x', '10');
+        metadata.setAttribute('y', height - 10);
+        metadata.setAttribute('fill', '#fca5a5');
+        metadata.setAttribute('font-size', '9');
+        metadata.textContent = `exit: ${node.metadata?.exit_code ?? 1} | ${node.metadata?.duration_ms ?? 0}ms`;
+        g.appendChild(metadata);
 
         this.nodesGroup.appendChild(g);
     }
@@ -320,7 +539,10 @@ class Canvas {
             'input': 'url(#inputGradient)',
             'output': 'url(#outputGradient)',
             'skill': 'url(#skillGradient)',
-            'auto': 'url(#autoGradient)'
+            'auto': 'url(#autoGradient)',
+            'terminal_input': 'url(#terminalInputGradient)',
+            'terminal_output': 'url(#terminalOutputGradient)',
+            'terminal_error': 'url(#terminalErrorGradient)'
         };
         return fills[type] || '#666';
     }

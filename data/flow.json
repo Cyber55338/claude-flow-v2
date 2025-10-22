@@ -1,135 +1,368 @@
 {
-  "conversation_id": "demo-conversation-001",
-  "created_at": "2025-10-22T14:00:00Z",
+  "conversation_id": null,
+  "created_at": "2025-10-22T09:04:31.444Z",
   "nodes": [
     {
-      "id": "node-1",
-      "type": "input",
-      "content": "Help me understand the metacognitive flow framework",
+      "id": "node-cmd-1761125496069-1",
+      "type": "terminal_input",
+      "content": "pwd",
       "parent_id": null,
-      "timestamp": "2025-10-22T14:00:01Z"
+      "level": 0,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T09:31:36.069Z",
+        "terminal_session": "session-1761125486996",
+        "command_index": 0,
+        "status": "complete",
+        "working_directory": "/current/path",
+        "command": "pwd"
+      }
     },
     {
-      "id": "node-2",
-      "type": "skill",
-      "skill_name": "metacognitive-flow",
-      "title": "Thought",
-      "content": "Let me break down the metacognitive framework systematically. It combines cognitive nodes with mental models to create structured reasoning pathways.",
-      "parent_id": "node-1",
-      "timestamp": "2025-10-22T14:00:05Z"
+      "id": "node-out-1761125496069-2",
+      "type": "terminal_output",
+      "content": "/data/data/com.termux/files/home/claude-flow",
+      "parent_id": "node-cmd-1761125496069-1",
+      "level": 0,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T09:31:36.069Z",
+        "terminal_session": "session-1761125486996",
+        "parent_command": "node-cmd-1761125496069-1",
+        "exit_code": 0,
+        "duration_ms": 39,
+        "output_length": 44,
+        "truncated": false,
+        "error_message": null
+      }
     },
     {
-      "id": "node-3",
-      "type": "skill",
-      "skill_name": "metacognitive-flow",
-      "title": "Emotion",
-      "content": "There's excitement in exploring this framework - it feels like unlocking a new way of thinking. The structure provides clarity while maintaining flexibility.",
-      "parent_id": "node-1",
-      "timestamp": "2025-10-22T14:00:06Z"
+      "id": "node-cmd-1761125515263-3",
+      "type": "terminal_input",
+      "content": "Hello",
+      "parent_id": "node-out-1761125496069-2",
+      "level": 1,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T09:31:55.263Z",
+        "terminal_session": "session-1761125486996",
+        "command_index": 1,
+        "status": "complete",
+        "working_directory": "/current/path",
+        "command": "Hello"
+      }
     },
     {
-      "id": "node-4",
-      "type": "skill",
-      "skill_name": "metacognitive-flow",
-      "title": "Imagination",
-      "content": "Imagine applying this to complex problems - visualizing the thought process as a tree of possibilities, each branch representing a different cognitive pathway.",
-      "parent_id": "node-1",
-      "timestamp": "2025-10-22T14:00:07Z"
+      "id": "node-out-1761125515263-4",
+      "type": "terminal_output",
+      "content": "Hello! I'm Claude Code, ready to help you with your software engineering tasks in the claude-flow repository.\n\nI can see you have a Claude Flow V2 project with several modified files and analysis documents. How can I assist you today?",
+      "parent_id": "node-cmd-1761125515263-3",
+      "level": 1,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T09:31:55.263Z",
+        "terminal_session": "session-1761125486996",
+        "parent_command": "node-cmd-1761125515263-3",
+        "exit_code": 0,
+        "duration_ms": 6642,
+        "output_length": 234,
+        "truncated": false,
+        "error_message": null
+      }
     },
     {
-      "id": "node-5",
-      "type": "skill",
-      "skill_name": "metacognitive-flow",
-      "title": "Belief",
-      "content": "I believe that making thinking visible through structured frameworks helps us become better problem solvers and decision makers.",
-      "parent_id": "node-1",
-      "timestamp": "2025-10-22T14:00:08Z"
+      "id": "node-cmd-1761131259871-5",
+      "type": "terminal_input",
+      "content": "Hey",
+      "parent_id": "node-out-1761125515263-4",
+      "level": 2,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T11:07:39.871Z",
+        "terminal_session": "session-1761125486996",
+        "command_index": 2,
+        "status": "complete",
+        "working_directory": "/current/path",
+        "command": "Hey"
+      }
     },
     {
-      "id": "node-6",
-      "type": "skill",
-      "skill_name": "metacognitive-flow",
-      "title": "Action",
-      "content": "Start by selecting a real problem, choose 5 mental models, generate 5 cognitive flows per model, score them, and execute the best approach.",
-      "parent_id": "node-1",
-      "timestamp": "2025-10-22T14:00:09Z"
+      "id": "node-out-1761131259871-6",
+      "type": "terminal_output",
+      "content": "Hey! I'm here to help you with software engineering tasks. I can see you're working on a Claude Flow V2 project with several modified files and many new documentation files.\n\nIs there something specific you'd like help with today? For example:\n- Working on any of the modified files (app.js, canvas.js, server.js, etc.)\n- Running tests or debugging\n... (3 more lines)",
+      "parent_id": "node-cmd-1761131259871-5",
+      "level": 2,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T11:07:39.871Z",
+        "terminal_session": "session-1761125486996",
+        "parent_command": "node-cmd-1761131259871-5",
+        "exit_code": 0,
+        "duration_ms": 7648,
+        "output_length": 423,
+        "truncated": true,
+        "error_message": null
+      }
     },
     {
-      "id": "node-7",
-      "type": "output",
-      "content": "The metacognitive flow framework is a structured reasoning approach that combines 5 cognitive nodes (Thought, Emotion, Imagination, Belief, Action) with mental models to solve complex problems.",
-      "parent_id": "node-1",
-      "timestamp": "2025-10-22T14:00:10Z"
+      "id": "node-cmd-1761131316579-7",
+      "type": "terminal_input",
+      "content": "ls",
+      "parent_id": "node-out-1761131259871-6",
+      "level": 3,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T11:08:36.579Z",
+        "terminal_session": "session-1761125486996",
+        "command_index": 3,
+        "status": "complete",
+        "working_directory": "/current/path",
+        "command": "ls"
+      }
     },
     {
-      "id": "node-8",
-      "type": "input",
-      "content": "Show me a practical example",
+      "id": "node-out-1761131316579-8",
+      "type": "terminal_output",
+      "content": "ANALYSIS-FILES-README.txt\nBMAD-V6-FINAL-SUMMARY.md\nCLAUDE-INTEGRATION-COMPLETE.md\nDEPLOYMENT-GUIDE.md\nEPIC-2-FEATURES.md\n... (89 more lines)",
+      "parent_id": "node-cmd-1761131316579-7",
+      "level": 3,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T11:08:36.579Z",
+        "terminal_session": "session-1761125486996",
+        "parent_command": "node-cmd-1761131316579-7",
+        "exit_code": 0,
+        "duration_ms": 38,
+        "output_length": 1635,
+        "truncated": true,
+        "error_message": null
+      }
+    },
+    {
+      "id": "node-cmd-1761131412786-9",
+      "type": "terminal_input",
+      "content": "Generate 10 questions",
+      "parent_id": "node-out-1761131316579-8",
+      "level": 4,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T11:10:12.786Z",
+        "terminal_session": "session-1761125486996",
+        "command_index": 4,
+        "status": "complete",
+        "working_directory": "/current/path",
+        "command": "Generate 10 questions"
+      }
+    },
+    {
+      "id": "node-out-1761131412786-10",
+      "type": "terminal_output",
+      "content": "I'll generate 10 questions for you. Could you provide more context about what type of questions you'd like? For example:\n\n- Questions about this codebase (Claude Flow V2)?\n- General programming questions?\n- Questions for testing purposes?\n... (4 more lines)",
+      "parent_id": "node-cmd-1761131412786-9",
+      "level": 4,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T11:10:12.786Z",
+        "terminal_session": "session-1761125486996",
+        "parent_command": "node-cmd-1761131412786-9",
+        "exit_code": 0,
+        "duration_ms": 7054,
+        "output_length": 435,
+        "truncated": true,
+        "error_message": null
+      }
+    },
+    {
+      "id": "node-cmd-1761168674674-1",
+      "type": "terminal_input",
+      "content": "Hello",
       "parent_id": null,
-      "timestamp": "2025-10-22T14:01:00Z"
+      "level": 0,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T21:31:14.674Z",
+        "terminal_session": "session-1761168649726",
+        "command_index": 0,
+        "status": "complete",
+        "working_directory": "/current/path",
+        "command": "Hello"
+      }
     },
     {
-      "id": "node-9",
-      "type": "auto",
-      "detected_type": "example",
-      "title": "Example",
-      "content": "Let's say you're deciding whether to refactor a legacy codebase. Using First Principles Thinking with a Thought→Imagination→Analysis flow helps break down assumptions.",
-      "parent_id": "node-8",
-      "timestamp": "2025-10-22T14:01:05Z"
-    },
-    {
-      "id": "node-10",
-      "type": "auto",
-      "detected_type": "analysis",
-      "title": "Analysis",
-      "content": "The framework excels when you need systematic thinking. It prevents cognitive bias by forcing you to consider multiple perspectives through different node types.",
-      "parent_id": "node-8",
-      "timestamp": "2025-10-22T14:01:06Z"
-    },
-    {
-      "id": "node-11",
-      "type": "output",
-      "content": "Here's a practical example: When deciding on architecture for a new feature, use System Thinking + Thought→Imagination→Belief flow to map dependencies and envision solutions.",
-      "parent_id": "node-8",
-      "timestamp": "2025-10-22T14:01:07Z"
+      "id": "node-out-1761168674674-2",
+      "type": "terminal_output",
+      "content": "Hello! I'm Claude, ready to help you with your software engineering tasks in the claude-flow project.\n\nI can see you're working on a Claude Flow V2 application with WebSocket support, canvas-based flow visualization, terminal integration, and a parser system. There are several modified files and documentation artifacts in your working directory.\n\nHow can I help you today? Whether it's debugging, adding features, refactoring code, or anything else related to your project, I'm here to assist.",
+      "parent_id": "node-cmd-1761168674674-1",
+      "level": 0,
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "metadata": {
+        "timestamp": "2025-10-22T21:31:14.674Z",
+        "terminal_session": "session-1761168649726",
+        "parent_command": "node-cmd-1761168674674-1",
+        "exit_code": 0,
+        "duration_ms": 9736,
+        "output_length": 495,
+        "truncated": false,
+        "error_message": null
+      }
     }
   ],
   "edges": [
     {
-      "from": "node-1",
-      "to": "node-2"
+      "id": "edge-node-cmd-1761125496069-1-node-out-1761125496069-2",
+      "from": "node-cmd-1761125496069-1",
+      "to": "node-out-1761125496069-2",
+      "type": "command_output",
+      "style": "solid",
+      "color": "#06b6d4",
+      "metadata": {
+        "relationship": "command_to_output",
+        "timestamp": "2025-10-22T09:31:36.069Z"
+      }
     },
     {
-      "from": "node-1",
-      "to": "node-3"
+      "id": "edge-node-cmd-1761125515263-3-node-out-1761125515263-4",
+      "from": "node-cmd-1761125515263-3",
+      "to": "node-out-1761125515263-4",
+      "type": "command_output",
+      "style": "solid",
+      "color": "#06b6d4",
+      "metadata": {
+        "relationship": "command_to_output",
+        "timestamp": "2025-10-22T09:31:55.263Z"
+      }
     },
     {
-      "from": "node-1",
-      "to": "node-4"
+      "id": "edge-seq-node-out-1761125496069-2-node-cmd-1761125515263-3",
+      "from": "node-out-1761125496069-2",
+      "to": "node-cmd-1761125515263-3",
+      "type": "sequential_flow",
+      "style": "dashed",
+      "color": "#6366f1",
+      "metadata": {
+        "relationship": "sequential_flow",
+        "timestamp": "2025-10-22T09:31:55.263Z"
+      }
     },
     {
-      "from": "node-1",
-      "to": "node-5"
+      "id": "edge-node-cmd-1761131259871-5-node-out-1761131259871-6",
+      "from": "node-cmd-1761131259871-5",
+      "to": "node-out-1761131259871-6",
+      "type": "command_output",
+      "style": "solid",
+      "color": "#06b6d4",
+      "metadata": {
+        "relationship": "command_to_output",
+        "timestamp": "2025-10-22T11:07:39.871Z"
+      }
     },
     {
-      "from": "node-1",
-      "to": "node-6"
+      "id": "edge-seq-node-out-1761125515263-4-node-cmd-1761131259871-5",
+      "from": "node-out-1761125515263-4",
+      "to": "node-cmd-1761131259871-5",
+      "type": "sequential_flow",
+      "style": "dashed",
+      "color": "#6366f1",
+      "metadata": {
+        "relationship": "sequential_flow",
+        "timestamp": "2025-10-22T11:07:39.871Z"
+      }
     },
     {
-      "from": "node-1",
-      "to": "node-7"
+      "id": "edge-node-cmd-1761131316579-7-node-out-1761131316579-8",
+      "from": "node-cmd-1761131316579-7",
+      "to": "node-out-1761131316579-8",
+      "type": "command_output",
+      "style": "solid",
+      "color": "#06b6d4",
+      "metadata": {
+        "relationship": "command_to_output",
+        "timestamp": "2025-10-22T11:08:36.579Z"
+      }
     },
     {
-      "from": "node-8",
-      "to": "node-9"
+      "id": "edge-seq-node-out-1761131259871-6-node-cmd-1761131316579-7",
+      "from": "node-out-1761131259871-6",
+      "to": "node-cmd-1761131316579-7",
+      "type": "sequential_flow",
+      "style": "dashed",
+      "color": "#6366f1",
+      "metadata": {
+        "relationship": "sequential_flow",
+        "timestamp": "2025-10-22T11:08:36.579Z"
+      }
     },
     {
-      "from": "node-8",
-      "to": "node-10"
+      "id": "edge-node-cmd-1761131412786-9-node-out-1761131412786-10",
+      "from": "node-cmd-1761131412786-9",
+      "to": "node-out-1761131412786-10",
+      "type": "command_output",
+      "style": "solid",
+      "color": "#06b6d4",
+      "metadata": {
+        "relationship": "command_to_output",
+        "timestamp": "2025-10-22T11:10:12.786Z"
+      }
     },
     {
-      "from": "node-8",
-      "to": "node-11"
+      "id": "edge-seq-node-out-1761131316579-8-node-cmd-1761131412786-9",
+      "from": "node-out-1761131316579-8",
+      "to": "node-cmd-1761131412786-9",
+      "type": "sequential_flow",
+      "style": "dashed",
+      "color": "#6366f1",
+      "metadata": {
+        "relationship": "sequential_flow",
+        "timestamp": "2025-10-22T11:10:12.786Z"
+      }
+    },
+    {
+      "id": "edge-node-cmd-1761168674674-1-node-out-1761168674674-2",
+      "from": "node-cmd-1761168674674-1",
+      "to": "node-out-1761168674674-2",
+      "type": "command_output",
+      "style": "solid",
+      "color": "#06b6d4",
+      "metadata": {
+        "relationship": "command_to_output",
+        "timestamp": "2025-10-22T21:31:14.674Z"
+      }
     }
   ]
 }

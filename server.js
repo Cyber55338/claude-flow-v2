@@ -9,6 +9,11 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs').promises;
+const { exec } = require('child_process');
+const util = require('util');
+
+// Promisify exec for async/await
+const execPromise = util.promisify(exec);
 
 // Configuration
 const PORT = process.env.PORT || 3000;
@@ -178,11 +183,19 @@ function handleMessage(client, message) {
                 // Handle node update
                 if (data.nodes) {
                     flowData.nodes.push(...data.nodes);
+
+                    // Also handle edges if provided with nodes
+                    if (data.edges && Array.isArray(data.edges)) {
+                        flowData.edges.push(...data.edges);
+                    }
+
+                    // Broadcast to ALL clients INCLUDING sender
                     broadcast({
                         type: MessageType.NODE_UPDATE,
                         nodes: data.nodes,
+                        edges: data.edges || [],
                         timestamp: new Date().toISOString()
-                    }, client);
+                    }); // Don't exclude sender!
                     saveFlowData();
                 }
                 break;
@@ -384,6 +397,111 @@ app.get('/api/health', (req, res) => {
 });
 
 /**
+ * Command execution endpoint
+ */
+app.post('/api/execute', async (req, res) => {
+    try {
+        const { command, type = 'shell' } = req.body;
+
+        if (!command || typeof command !== 'string') {
+            return res.status(400).json({ error: 'Invalid command' });
+        }
+
+        console.log(`Executing ${type} command: ${command}`);
+
+        let output = '';
+        let error = null;
+
+        if (type === 'shell') {
+            try {
+                // Execute shell command
+                const { stdout, stderr } = await execPromise(command, {
+                    timeout: 30000, // 30 second timeout
+                    maxBuffer: 1024 * 1024 // 1MB buffer
+                });
+
+                output = stdout || stderr || 'Command executed successfully';
+            } catch (execError) {
+                // Command failed but we still want to return the output
+                output = execError.stdout || execError.stderr || execError.message;
+                error = execError.message;
+            }
+        } else if (type === 'claude') {
+            // Integrate with Claude Code CLI
+            try {
+                const { spawn } = require('child_process');
+
+                // Spawn Claude Code with the command as input
+                const claude = spawn('claude', [], {
+                    timeout: 60000 // 60 second timeout for Claude
+                });
+
+                // Send the user's input to Claude
+                claude.stdin.write(command + '\n');
+                claude.stdin.end();
+
+                // Capture output
+                let stdout = '';
+                let stderr = '';
+
+                claude.stdout.on('data', (data) => {
+                    stdout += data.toString();
+                });
+
+                claude.stderr.on('data', (data) => {
+                    stderr += data.toString();
+                });
+
+                // Wait for completion
+                await new Promise((resolve, reject) => {
+                    claude.on('close', (code) => {
+                        if (code === 0 || stdout.length > 0) {
+                            resolve();
+                        } else {
+                            reject(new Error(`Claude exited with code ${code}`));
+                        }
+                    });
+
+                    claude.on('error', (err) => {
+                        reject(err);
+                    });
+
+                    // Timeout handling
+                    setTimeout(() => {
+                        claude.kill();
+                        reject(new Error('Claude Code timeout (60s)'));
+                    }, 60000);
+                });
+
+                output = stdout.trim() || stderr.trim() || 'No response from Claude Code';
+
+            } catch (claudeError) {
+                output = `Claude Code error: ${claudeError.message}`;
+                error = claudeError.message;
+            }
+        } else {
+            return res.status(400).json({ error: 'Invalid command type. Use "shell" or "claude"' });
+        }
+
+        res.json({
+            success: !error,
+            output: output.trim(),
+            error: error,
+            command: command,
+            type: type,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Error executing command:', error);
+        res.status(500).json({
+            error: 'Failed to execute command',
+            message: error.message
+        });
+    }
+});
+
+/**
  * Start server
  */
 async function start() {
@@ -401,6 +519,7 @@ async function start() {
         console.log(`\nAPI Endpoints:`);
         console.log(`  POST /api/nodes   - Add nodes`);
         console.log(`  POST /api/clear   - Clear flow data`);
+        console.log(`  POST /api/execute - Execute commands`);
         console.log(`  GET  /api/state   - Get current state`);
         console.log(`  GET  /api/health  - Health check`);
         console.log(`\nPress Ctrl+C to stop`);

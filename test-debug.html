@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Flow</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; max-height: 400px; overflow: auto; }
+        .log { margin: 2px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Complete Flow Debug</h1>
+    <button onclick="testComplete()">TEST COMPLETE FLOW</button>
+    <button onclick="clearLog()">Clear</button>
+    <pre id="log"></pre>
+
+    <script src="parser-v2.js?v=3"></script>
+    <script src="canvas.js?v=3"></script>
+    <script src="ui-utils.js?v=3"></script>
+    <script src="app.js?v=3"></script>
+    <script src="terminal-input.js?v=3"></script>
+
+    <script>
+        const logEl = document.getElementById('log');
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'log ' + type;
+            div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            logEl.appendChild(div);
+            console.log(msg);
+        }
+
+        function clearLog() {
+            logEl.textContent = '';
+        }
+
+        // Intercept WebSocket messages
+        if (window.app && window.app.ws) {
+            const originalSend = window.app.ws.send.bind(window.app.ws);
+            window.app.ws.send = function(data) {
+                log('📤 Sending WebSocket: ' + data.substring(0, 100), 'info');
+                return originalSend(data);
+            };
+
+            window.app.ws.addEventListener('message', (event) => {
+                log('📥 Received WebSocket: ' + event.data.substring(0, 100), 'success');
+            });
+        }
+
+        async function testComplete() {
+            clearLog();
+            log('=== STARTING COMPLETE FLOW TEST ===', 'info');
+
+            // Step 1: Check components
+            log('\n1️⃣ Checking components...', 'info');
+            log('  app: ' + typeof window.app, 'info');
+            log('  parser: ' + typeof window.app?.parser, 'info');
+            log('  parseTerminalExecution: ' + typeof window.app?.parser?.parseTerminalExecution, 'info');
+            log('  canvas: ' + typeof window.app?.canvas, 'info');
+            log('  terminalInput: ' + typeof window.terminalInput, 'info');
+
+            if (!window.app?.parser?.parseTerminalExecution) {
+                log('❌ Parser not available!', 'error');
+                return;
+            }
+
+            // Step 2: Create nodes
+            log('\n2️⃣ Creating nodes with parser...', 'info');
+            const result = window.app.parser.parseTerminalExecution(
+                'pwd',
+                { success: true, output: '/test/path', exit_code: 0, duration_ms: 10 },
+                { session_id: 'debug-test', command_index: 0 }
+            );
+            log('  Created ' + result.nodes.length + ' nodes', 'success');
+            log('  Created ' + result.edges.length + ' edges', 'success');
+            log('  Node 1: ' + result.nodes[0].type + ' - ' + result.nodes[0].content, 'info');
+            log('  Node 2: ' + result.nodes[1].type, 'info');
+            log('  Edge 1: ' + result.edges[0].from + ' -> ' + result.edges[0].to, 'info');
+
+            // Step 3: Check WebSocket
+            log('\n3️⃣ Checking WebSocket...', 'info');
+            if (!window.app.ws) {
+                log('❌ WebSocket not initialized!', 'error');
+                return;
+            }
+            log('  State: ' + window.app.ws.readyState + ' (1=OPEN)', 'info');
+            if (window.app.ws.readyState !== 1) {
+                log('❌ WebSocket not open!', 'error');
+                return;
+            }
+
+            // Step 4: Send via WebSocket
+            log('\n4️⃣ Sending nodes via WebSocket...', 'info');
+            const success = window.app.sendMessage({
+                type: 'node_update',
+                nodes: result.nodes,
+                edges: result.edges
+            });
+            log('  sendMessage returned: ' + success, success ? 'success' : 'error');
+
+            // Step 5: Wait for broadcast
+            log('\n5️⃣ Waiting for broadcast back from server...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Step 6: Check canvas data
+            log('\n6️⃣ Checking canvas data...', 'info');
+            const canvasData = window.app.canvas.getData();
+            log('  Nodes in canvas: ' + canvasData.nodes.length, 'info');
+            log('  Edges in canvas: ' + canvasData.edges.length, 'info');
+
+            if (canvasData.nodes.length > 0) {
+                log('✅ SUCCESS! Nodes are in canvas!', 'success');
+                log('\n🎉 Now refresh main page to see them!', 'success');
+            } else {
+                log('❌ Canvas still empty after broadcast', 'error');
+                log('  Check browser console for errors', 'error');
+            }
+
+            // Step 7: Check server
+            log('\n7️⃣ Checking server state...', 'info');
+            const serverResp = await fetch('/api/state');
+            const serverData = await serverResp.json();
+            log('  Nodes on server: ' + serverData.flow_data.nodes.length, 'info');
+            log('  Edges on server: ' + serverData.flow_data.edges.length, 'info');
+        }
+
+        // Auto test after a moment
+        setTimeout(() => {
+            if (window.app?.ws?.readyState === 1) {
+                log('✅ WebSocket connected! Ready to test.', 'success');
+            } else {
+                log('⏳ Waiting for WebSocket...', 'info');
+                setTimeout(() => {
+                    if (window.app?.ws?.readyState === 1) {
+                        log('✅ WebSocket connected!', 'success');
+                    }
+                }, 2000);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

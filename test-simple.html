@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <h1>Is the fix loaded?</h1>
+    <button onclick="runTest()">RUN TEST</button>
+    <pre id="result"></pre>
+
+    <!-- Force reload with timestamp -->
+    <script src="parser-v2.js?v=2"></script>
+    <script src="canvas.js?v=2"></script>
+    <script src="ui-utils.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+    <script src="terminal-input.js?v=2"></script>
+
+    <script>
+        async function runTest() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing...\n';
+
+            // Test 1: Check parser location
+            result.textContent += '\n1. Checking parser...\n';
+            result.textContent += '   window.app.parser exists: ' + (window.app?.parser ? 'YES' : 'NO') + '\n';
+            result.textContent += '   parseTerminalExecution exists: ' + (window.app?.parser?.parseTerminalExecution ? 'YES' : 'NO') + '\n';
+
+            if (!window.app?.parser?.parseTerminalExecution) {
+                result.textContent += '\n❌ PARSER NOT LOADED CORRECTLY\n';
+                result.textContent += 'Browser cache issue. Try:\n';
+                result.textContent += '1. Close ALL browser tabs\n';
+                result.textContent += '2. Clear browser cache\n';
+                result.textContent += '3. Reopen browser\n';
+                return;
+            }
+
+            // Test 2: Create nodes
+            result.textContent += '\n2. Creating terminal nodes...\n';
+            try {
+                const nodes = window.app.parser.parseTerminalExecution(
+                    'pwd',
+                    {success: true, output: '/test', exit_code: 0, duration_ms: 10},
+                    {session_id: 'test', command_index: 0}
+                );
+                result.textContent += '   Nodes created: ' + nodes.nodes.length + '\n';
+                result.textContent += '   Edges created: ' + nodes.edges.length + '\n';
+
+                // Test 3: Send to server
+                result.textContent += '\n3. Sending to server...\n';
+                const response = await fetch('/api/nodes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({nodes: nodes.nodes, edges: nodes.edges})
+                });
+                const serverResult = await response.json();
+                result.textContent += '   Server response: ' + JSON.stringify(serverResult) + '\n';
+
+                result.textContent += '\n✅ ALL TESTS PASSED!\n';
+                result.textContent += 'Now refresh main page: http://localhost:3000\n';
+            } catch (error) {
+                result.textContent += '\n❌ ERROR: ' + error.message + '\n';
+            }
+        }
+    </script>
+</body>
+</html>

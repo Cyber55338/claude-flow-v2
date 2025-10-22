@@ -94,6 +94,37 @@
     "min_unique_content_ratio": 0.3
   },
 
+  "terminal_node_types": {
+    "terminal_input": {
+      "color": "#22c55e",
+      "gradient": ["#22c55e", "#16a34a"],
+      "icon": "terminal",
+      "max_lines": 3,
+      "font_family": "'Fira Code', 'Consolas', monospace",
+      "font_size": 13,
+      "description": "Terminal command input node"
+    },
+    "terminal_output": {
+      "color": "#06b6d4",
+      "gradient": ["#06b6d4", "#0891b2"],
+      "icon": "check-circle",
+      "max_lines": 5,
+      "font_family": "'Fira Code', 'Consolas', monospace",
+      "font_size": 12,
+      "description": "Terminal command output node (success)"
+    },
+    "terminal_error": {
+      "color": "#ef4444",
+      "gradient": ["#ef4444", "#dc2626"],
+      "icon": "x-circle",
+      "max_lines": 5,
+      "font_family": "'Fira Code', 'Consolas', monospace",
+      "font_size": 12,
+      "font_weight": "bold",
+      "description": "Terminal command error node (failure)"
+    }
+  },
+
   "advanced_features": {
     "nested_structure_detection": true,
     "cross_reference_linking": false,

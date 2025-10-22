@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edge Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; max-height: 500px; overflow: auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Edge Transmission Test</h1>
+    <button onclick="runTest()">RUN EDGE TEST</button>
+    <button onclick="clearLog()">Clear</button>
+    <pre id="log"></pre>
+
+    <script src="parser-v2.js?v=4"></script>
+    <script src="canvas.js?v=4"></script>
+    <script src="ui-utils.js?v=4"></script>
+    <script src="app.js?v=4"></script>
+    <script src="terminal-input.js?v=4"></script>
+
+    <script>
+        const logEl = document.getElementById('log');
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            logEl.appendChild(div);
+            console.log(msg);
+        }
+
+        function clearLog() {
+            logEl.textContent = '';
+        }
+
+        async function runTest() {
+            clearLog();
+            log('=== EDGE TRANSMISSION TEST ===\n', 'info');
+
+            // Wait for app to initialize
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            if (!window.app?.ws || window.app.ws.readyState !== 1) {
+                log('❌ WebSocket not ready. Wait a moment and try again.', 'error');
+                return;
+            }
+
+            log('✅ WebSocket connected\n', 'success');
+
+            // Step 1: Create nodes with parser
+            log('1️⃣ Creating nodes with parser...', 'info');
+            const result = window.app.parser.parseTerminalExecution(
+                'test-command',
+                { success: true, output: 'test output', exit_code: 0, duration_ms: 10 },
+                { session_id: 'edge-test', command_index: 99 }
+            );
+
+            log('  Nodes created: ' + result.nodes.length, 'info');
+            log('  Edges created: ' + result.edges.length, result.edges.length > 0 ? 'success' : 'error');
+
+            if (result.edges.length > 0) {
+                log('  Edge details:', 'info');
+                result.edges.forEach((edge, i) => {
+                    log('    Edge ' + i + ': from=' + edge.from + ', to=' + edge.to, 'info');
+                });
+            } else {
+                log('  ❌ NO EDGES CREATED BY PARSER!', 'error');
+                return;
+            }
+
+            // Step 2: Intercept WebSocket send
+            log('\n2️⃣ Intercepting WebSocket message...', 'info');
+
+            let interceptedMessage = null;
+            const originalSend = window.app.ws.send.bind(window.app.ws);
+            window.app.ws.send = function(data) {
+                interceptedMessage = JSON.parse(data);
+                log('  Intercepted message type: ' + interceptedMessage.type, 'info');
+                log('  Nodes in message: ' + (interceptedMessage.nodes?.length || 0), 'info');
+                log('  Edges in message: ' + (interceptedMessage.edges?.length || 0),
+                    interceptedMessage.edges?.length > 0 ? 'success' : 'error');
+
+                if (interceptedMessage.edges?.length > 0) {
+                    log('  ✅ EDGES ARE BEING SENT!', 'success');
+                    interceptedMessage.edges.forEach((edge, i) => {
+                        log('    Sent edge ' + i + ': ' + JSON.stringify(edge, null, 2), 'info');
+                    });
+                } else {
+                    log('  ❌ NO EDGES IN WEBSOCKET MESSAGE!', 'error');
+                }
+
+                return originalSend(data);
+            };
+
+            // Step 3: Send via app
+            log('\n3️⃣ Sending via sendMessage...', 'info');
+            const sent = window.app.sendMessage({
+                type: 'node_update',
+                nodes: result.nodes,
+                edges: result.edges
+            });
+            log('  sendMessage returned: ' + sent, sent ? 'success' : 'error');
+
+            // Step 4: Wait and check server
+            log('\n4️⃣ Checking server after 1 second...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const response = await fetch('/api/state');
+            const serverData = await response.json();
+
+            log('  Server nodes: ' + serverData.flow_data.nodes.length, 'info');
+            log('  Server edges: ' + serverData.flow_data.edges.length,
+                serverData.flow_data.edges.length > 0 ? 'success' : 'error');
+
+            // Summary
+            log('\n📊 SUMMARY:', 'info');
+            log('  Parser creates edges: ' + (result.edges.length > 0 ? '✅' : '❌'),
+                result.edges.length > 0 ? 'success' : 'error');
+            log('  Edges sent via WebSocket: ' + (interceptedMessage?.edges?.length > 0 ? '✅' : '❌'),
+                interceptedMessage?.edges?.length > 0 ? 'success' : 'error');
+            log('  Edges on server: ' + (serverData.flow_data.edges.length > 0 ? '✅' : '❌'),
+                serverData.flow_data.edges.length > 0 ? 'success' : 'error');
+
+            if (result.edges.length > 0 &&
+                interceptedMessage?.edges?.length > 0 &&
+                serverData.flow_data.edges.length > 0) {
+                log('\n🎉 ALL TESTS PASSED! Edges work!', 'success');
+            } else {
+                log('\n❌ EDGES ARE LOST SOMEWHERE IN THE FLOW', 'error');
+            }
+        }
+
+        // Auto-run after 2 seconds
+        setTimeout(() => {
+            if (window.app?.ws?.readyState === 1) {
+                log('Ready! Click "RUN EDGE TEST"\n', 'success');
+            } else {
+                log('Waiting for WebSocket...\n', 'info');
+                setTimeout(() => {
+                    if (window.app?.ws?.readyState === 1) {
+                        log('✅ Ready! Click "RUN EDGE TEST"\n', 'success');
+                    } else {
+                        log('❌ WebSocket not connecting\n', 'error');
+                    }
+                }, 3000);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
