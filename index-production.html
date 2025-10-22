@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Flow V2 - Production</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- D3.js for Advanced Layouts -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- html2canvas for PNG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- QRCode.js for sharing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style-v2.css">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0a0e1a',
+                            panel: '#0f1419',
+                            surface: '#1a1f2e',
+                            border: '#2a2f3e',
+                            hover: '#252a39',
+                        },
+                        accent: {
+                            primary: '#6366f1',
+                            secondary: '#8b5cf6',
+                            success: '#10b981',
+                            warning: '#f59e0b',
+                            error: '#ef4444',
+                            info: '#3b82f6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="dark bg-dark-bg text-gray-100 overflow-hidden h-screen">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-text">Loading Claude Flow V2...</div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Main Container -->
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="header-gradient border-b border-dark-border backdrop-blur-sm">
+            <div class="flex justify-between items-center px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <div class="logo-container">
+                        <svg class="w-8 h-8 text-accent-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">
+                        Claude Flow V2
+                    </h1>
+                    <span class="text-xs bg-accent-primary/20 text-accent-primary px-2 py-1 rounded-full">Production</span>
+                    <span class="status-badge" id="connection-status">
+                        <span class="status-indicator status-active"></span>
+                        Connecting...
+                    </span>
+                </div>
+                <div class="flex gap-2">
+                    <!-- History Controls -->
+                    <button id="undo-btn" class="control-btn" title="Undo (Ctrl+Z)" disabled>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                    </button>
+                    <button id="redo-btn" class="control-btn" title="Redo (Ctrl+Shift+Z)" disabled>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+                        </svg>
+                    </button>
+
+                    <!-- Export/Import -->
+                    <button id="export-btn" class="control-btn" title="Export">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </button>
+                    <button id="import-btn" class="control-btn" title="Import">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                    <button id="conversations-btn" class="control-btn" title="Conversations">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    </button>
+
+                    <!-- Canvas Controls -->
+                    <div class="w-px h-8 bg-dark-border"></div>
+                    <button id="zoom-in" class="control-btn" title="Zoom In (+)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </button>
+                    <button id="zoom-out" class="control-btn" title="Zoom Out (-)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                        </svg>
+                    </button>
+                    <button id="zoom-reset" class="control-btn" title="Reset Zoom (R)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                    <button id="clear-canvas" class="control-btn control-btn-danger" title="Clear Canvas">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Terminal Panel -->
+            <div class="panel terminal-panel w-2/5 min-w-[320px] flex flex-col border-r border-dark-border">
+                <div class="panel-header">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wide">Terminal</h2>
+                    </div>
+                    <span class="status-badge status-badge-success" id="terminal-status">
+                        <span class="status-indicator status-active"></span>
+                        Ready
+                    </span>
+                </div>
+                <div class="terminal-content flex-1 overflow-y-auto p-4" id="terminal">
+                    <div class="terminal-output space-y-2">
+                        <div class="welcome-message flex items-start gap-2">
+                            <svg class="w-5 h-5 text-accent-success flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-accent-success font-semibold">Claude Flow V2 - Production Ready</span>
+                        </div>
+                        <p class="info-message text-gray-400 text-sm pl-7">
+                            ✨ All 7 Epics Implemented<br>
+                            🎨 Modern UI/UX<br>
+                            ⚡ Real-time WebSocket<br>
+                            🔍 Advanced Search & Filter<br>
+                            📊 Performance Optimized<br>
+                            💾 Export & Persistence<br>
+                            🎯 Node Interactions
+                        </p>
+                        <p class="info-message text-gray-400 text-sm pl-7 mt-4">
+                    </div>
+                    <!-- Interactive Terminal Input -->
+                    <div class="terminal-input-container" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #2a2f3e;">
+                        <div class="terminal-prompt" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                            <span class="prompt-symbol" style="color: #6366f1; font-weight: bold; font-size: 16px; font-family: monospace;">$</span>
+                            <input type="text" id="terminal-input" class="terminal-input" placeholder="Type your message and press Enter..." autocomplete="off" style="flex: 1; background: transparent; border: none; color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 14px; outline: none; padding: 5px;" />
+                        </div>
+                        <div style="margin-top: 8px; padding: 0 10px; font-size: 11px; color: #666; font-style: italic;">Press Enter to send | ↑↓ for history | Ctrl+L to clear</div>
+                            Press <code class="inline-code">?</code> for keyboard shortcuts
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Panel -->
+            <div class="panel canvas-panel flex-1 flex flex-col">
+                <div class="panel-header">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                        <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wide">Visual Canvas</h2>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <!-- Search Bar -->
+                        <div class="search-container" id="search-container">
+                            <input type="text" id="search-input" class="search-input" placeholder="Search nodes..." />
+                            <select id="type-filter" class="type-filter">
+                                <option value="all">All Types</option>
+                                <option value="input">Input</option>
+                                <option value="output">Output</option>
+                                <option value="skill">Skill</option>
+                                <option value="auto">Auto</option>
+                            </select>
+                        </div>
+                        <span class="node-count-badge" id="node-count">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                            </svg>
+                            <span>0 nodes</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="canvas-content flex-1 relative overflow-hidden bg-gradient-to-br from-dark-bg via-dark-panel to-dark-surface">
+                    <!-- Grid Background -->
+                    <div class="canvas-grid"></div>
+
+                    <!-- SVG Canvas -->
+                    <svg id="canvas" width="100%" height="100%" class="relative z-10">
+                        <defs>
+                            <!-- Gradients -->
+                            <linearGradient id="inputGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="outputGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="skillGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="autoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- Glow Filter -->
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <g id="canvas-group">
+                            <g id="edges-group"></g>
+                            <g id="nodes-group"></g>
+                        </g>
+                    </svg>
+
+                    <!-- Empty State -->
+                    <div id="empty-state" class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg class="w-20 h-20 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
+                        <p class="text-xl font-medium text-gray-400 mb-2">No nodes yet</p>
+                        <p class="text-sm text-gray-500">Start chatting with Claude Code or load a conversation</p>
+                    </div>
+
+                    <!-- Minimap -->
+                    <div id="minimap-container" class="minimap-container">
+                        <svg id="minimap" width="200" height="150"></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer-gradient border-t border-dark-border backdrop-blur-sm px-6 py-3">
+            <div class="flex justify-between items-center text-sm">
+                <div class="flex items-center gap-4">
+                    <span id="status" class="flex items-center gap-2 text-gray-400">
+                        <span class="status-pulse"></span>
+                        Ready
+                    </span>
+                    <span class="text-gray-500">|</span>
+                    <span class="text-gray-500">Press P for Performance, T for Testing, ? for Help</span>
+                </div>
+                <span id="last-update" class="text-gray-500">Last update: Never</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals and overlays loaded here -->
+
+    <!-- Scripts - Load in order -->
+    <!-- Core utilities -->
+    <script src="ui-utils.js"></script>
+    <script src="parser-v2.js"></script>
+
+    <!-- Performance layer -->
+    <script src="performance.js"></script>
+    <script src="virtual-canvas.js"></script>
+    <script src="perf-monitor.js"></script>
+    <script src="test-data-generator.js"></script>
+
+    <!-- Canvas and visualization -->
+    <script src="canvas-v2.js"></script>
+    <script src="minimap.js"></script>
+    <script src="search.js"></script>
+    <script src="keyboard.js"></script>
+
+    <!-- Interactions -->
+    <script src="tooltip.js"></script>
+    <script src="modal.js"></script>
+    <script src="context-menu.js"></script>
+    <script src="interactions.js"></script>
+
+    <!-- Persistence and export -->
+    <script src="history.js"></script>
+    <script src="persistence.js"></script>
+    <script src="export.js"></script>
+    <script src="import.js"></script>
+    <script src="conversations.js"></script>
+    <script src="share.js"></script>
+
+    <!-- Main application -->
+    <script src="app-v2.js"></script>
+    <script src="terminal-input.js"></script>
+
+    <script>
+        // Initialize on load
+        console.log('%cClaude Flow V2 - Production Ready', 'color: #6366f1; font-size: 20px; font-weight: bold');
+        console.log('%c✓ All 7 Epics Implemented', 'color: #10b981');
+        console.log('%c✓ BMAD v6 Method Applied', 'color: #10b981');
+        console.log('%cPress ? for keyboard shortcuts', 'color: #8b5cf6');
+    </script>
+</body>
+</html>

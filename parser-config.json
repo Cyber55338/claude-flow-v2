@@ -1,0 +1,159 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Flow Parser Configuration",
+  "description": "Configuration for the enhanced parser supporting all Claude Code skills",
+  "version": "2.0.0",
+
+  "enabled_patterns": {
+    "metacognitive": true,
+    "xlsx": true,
+    "pdf": true,
+    "pptx": true,
+    "docx": true,
+    "code": true,
+    "tables": true,
+    "sections": true,
+    "analysis": true
+  },
+
+  "pattern_priority": [
+    "metacognitive",
+    "xlsx",
+    "pdf",
+    "pptx",
+    "docx",
+    "code",
+    "tables",
+    "sections",
+    "analysis"
+  ],
+
+  "extract_metadata": true,
+  "max_content_length": 500,
+  "min_content_length": 20,
+  "multiline_support": true,
+
+  "custom_patterns": {
+    "enabled": false,
+    "patterns": [
+      {
+        "name": "custom_example",
+        "description": "Example custom pattern",
+        "enabled": false,
+        "regex": "\\*\\*Custom\\*\\*:?\\s*([^\\n]+(?:\\n(?!\\*\\*)[^\\n]+)*)",
+        "flags": "gi",
+        "node_type": "custom",
+        "skill_name": null
+      }
+    ]
+  },
+
+  "skill_detection": {
+    "metacognitive-flow": {
+      "keywords": ["thought", "emotion", "imagination", "belief", "action"],
+      "pattern_type": "bold_keyword",
+      "case_sensitive": false
+    },
+    "xlsx": {
+      "keywords": ["spreadsheet", "excel", "xlsx", "cell", "formula", "workbook", "worksheet", "pivot", "chart"],
+      "pattern_type": "context_aware",
+      "case_sensitive": false
+    },
+    "pdf": {
+      "keywords": ["pdf", "extract", "merge", "split", "form", "annotation", "page"],
+      "pattern_type": "context_aware",
+      "case_sensitive": false
+    },
+    "pptx": {
+      "keywords": ["presentation", "powerpoint", "pptx", "slide", "layout"],
+      "pattern_type": "context_aware",
+      "case_sensitive": false
+    },
+    "docx": {
+      "keywords": ["document", "docx", "word", "paragraph", "heading", "tracked change", "comment"],
+      "pattern_type": "context_aware",
+      "case_sensitive": false
+    }
+  },
+
+  "metadata_extraction": {
+    "urls": true,
+    "file_paths": true,
+    "code_blocks": true,
+    "tables": true,
+    "timestamps": true,
+    "cell_references": true,
+    "page_numbers": true,
+    "slide_numbers": true
+  },
+
+  "node_creation": {
+    "auto_title_generation": true,
+    "preserve_formatting": true,
+    "deduplicate": true,
+    "min_unique_content_ratio": 0.3
+  },
+
+  "advanced_features": {
+    "nested_structure_detection": true,
+    "cross_reference_linking": false,
+    "semantic_grouping": false,
+    "ml_classification": false
+  },
+
+  "performance": {
+    "max_nodes_per_interaction": 100,
+    "regex_timeout_ms": 5000,
+    "cache_patterns": true
+  },
+
+  "examples": {
+    "metacognitive": {
+      "input": "**Thought**: I need to analyze this problem systematically.",
+      "output": {
+        "type": "skill",
+        "skill_name": "metacognitive-flow",
+        "title": "Thought"
+      }
+    },
+    "xlsx": {
+      "input": "**Spreadsheet**: Creating a budget tracker with formulas in cells A1:E10",
+      "output": {
+        "type": "skill",
+        "skill_name": "xlsx",
+        "title": "Spreadsheet",
+        "cells": [{"cell": "A1", "value": null}]
+      }
+    },
+    "pdf": {
+      "input": "**PDF**: Extracting data from pages 1-5",
+      "output": {
+        "type": "skill",
+        "skill_name": "pdf",
+        "title": "PDF",
+        "pages": [1, 2, 3, 4, 5]
+      }
+    },
+    "code": {
+      "input": "```javascript\nfunction hello() { return 'world'; }\n```",
+      "output": {
+        "type": "code",
+        "language": "javascript"
+      }
+    },
+    "table": {
+      "input": "| Header 1 | Header 2 |\n|----------|----------|\n| Data 1   | Data 2   |",
+      "output": {
+        "type": "table",
+        "headers": ["Header 1", "Header 2"]
+      }
+    }
+  },
+
+  "documentation": {
+    "config_guide": "See skill-patterns.md for detailed pattern documentation",
+    "custom_patterns": "Add custom patterns to custom_patterns.patterns array",
+    "priority": "Patterns are matched in pattern_priority order",
+    "disable": "Set enabled_patterns.<pattern> to false to disable detection"
+  }
+}

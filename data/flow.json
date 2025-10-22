@@ -1,0 +1,135 @@
+{
+  "conversation_id": "demo-conversation-001",
+  "created_at": "2025-10-22T14:00:00Z",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "input",
+      "content": "Help me understand the metacognitive flow framework",
+      "parent_id": null,
+      "timestamp": "2025-10-22T14:00:01Z"
+    },
+    {
+      "id": "node-2",
+      "type": "skill",
+      "skill_name": "metacognitive-flow",
+      "title": "Thought",
+      "content": "Let me break down the metacognitive framework systematically. It combines cognitive nodes with mental models to create structured reasoning pathways.",
+      "parent_id": "node-1",
+      "timestamp": "2025-10-22T14:00:05Z"
+    },
+    {
+      "id": "node-3",
+      "type": "skill",
+      "skill_name": "metacognitive-flow",
+      "title": "Emotion",
+      "content": "There's excitement in exploring this framework - it feels like unlocking a new way of thinking. The structure provides clarity while maintaining flexibility.",
+      "parent_id": "node-1",
+      "timestamp": "2025-10-22T14:00:06Z"
+    },
+    {
+      "id": "node-4",
+      "type": "skill",
+      "skill_name": "metacognitive-flow",
+      "title": "Imagination",
+      "content": "Imagine applying this to complex problems - visualizing the thought process as a tree of possibilities, each branch representing a different cognitive pathway.",
+      "parent_id": "node-1",
+      "timestamp": "2025-10-22T14:00:07Z"
+    },
+    {
+      "id": "node-5",
+      "type": "skill",
+      "skill_name": "metacognitive-flow",
+      "title": "Belief",
+      "content": "I believe that making thinking visible through structured frameworks helps us become better problem solvers and decision makers.",
+      "parent_id": "node-1",
+      "timestamp": "2025-10-22T14:00:08Z"
+    },
+    {
+      "id": "node-6",
+      "type": "skill",
+      "skill_name": "metacognitive-flow",
+      "title": "Action",
+      "content": "Start by selecting a real problem, choose 5 mental models, generate 5 cognitive flows per model, score them, and execute the best approach.",
+      "parent_id": "node-1",
+      "timestamp": "2025-10-22T14:00:09Z"
+    },
+    {
+      "id": "node-7",
+      "type": "output",
+      "content": "The metacognitive flow framework is a structured reasoning approach that combines 5 cognitive nodes (Thought, Emotion, Imagination, Belief, Action) with mental models to solve complex problems.",
+      "parent_id": "node-1",
+      "timestamp": "2025-10-22T14:00:10Z"
+    },
+    {
+      "id": "node-8",
+      "type": "input",
+      "content": "Show me a practical example",
+      "parent_id": null,
+      "timestamp": "2025-10-22T14:01:00Z"
+    },
+    {
+      "id": "node-9",
+      "type": "auto",
+      "detected_type": "example",
+      "title": "Example",
+      "content": "Let's say you're deciding whether to refactor a legacy codebase. Using First Principles Thinking with a Thought→Imagination→Analysis flow helps break down assumptions.",
+      "parent_id": "node-8",
+      "timestamp": "2025-10-22T14:01:05Z"
+    },
+    {
+      "id": "node-10",
+      "type": "auto",
+      "detected_type": "analysis",
+      "title": "Analysis",
+      "content": "The framework excels when you need systematic thinking. It prevents cognitive bias by forcing you to consider multiple perspectives through different node types.",
+      "parent_id": "node-8",
+      "timestamp": "2025-10-22T14:01:06Z"
+    },
+    {
+      "id": "node-11",
+      "type": "output",
+      "content": "Here's a practical example: When deciding on architecture for a new feature, use System Thinking + Thought→Imagination→Belief flow to map dependencies and envision solutions.",
+      "parent_id": "node-8",
+      "timestamp": "2025-10-22T14:01:07Z"
+    }
+  ],
+  "edges": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-1",
+      "to": "node-3"
+    },
+    {
+      "from": "node-1",
+      "to": "node-4"
+    },
+    {
+      "from": "node-1",
+      "to": "node-5"
+    },
+    {
+      "from": "node-1",
+      "to": "node-6"
+    },
+    {
+      "from": "node-1",
+      "to": "node-7"
+    },
+    {
+      "from": "node-8",
+      "to": "node-9"
+    },
+    {
+      "from": "node-8",
+      "to": "node-10"
+    },
+    {
+      "from": "node-8",
+      "to": "node-11"
+    }
+  ]
+}

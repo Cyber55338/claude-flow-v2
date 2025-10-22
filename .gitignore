@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+/tmp/
+
+# Data (optional - user-specific conversations)
+# Uncomment if you don't want to commit user data
+# data/flow.json
+
+# Test files
+test-output/
+coverage/
