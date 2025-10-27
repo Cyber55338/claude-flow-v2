@@ -512,10 +512,13 @@ async function start() {
     await initDataDir();
     await loadFlowData();
 
-    // Start server
-    server.listen(PORT, () => {
-        console.log(`\nServer running on http://localhost:${PORT}`);
-        console.log(`WebSocket endpoint: ws://localhost:${PORT}`);
+    // Start server - listen on all interfaces
+    server.listen(PORT, '0.0.0.0', () => {
+        const serverIp = '21.0.0.18'; // Server IP
+        console.log(`\nServer running on:`);
+        console.log(`  - http://localhost:${PORT}`);
+        console.log(`  - http://${serverIp}:${PORT}`);
+        console.log(`\nWebSocket endpoint: ws://${serverIp}:${PORT}`);
         console.log(`\nAPI Endpoints:`);
         console.log(`  POST /api/nodes   - Add nodes`);
         console.log(`  POST /api/clear   - Clear flow data`);
