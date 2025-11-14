@@ -19,6 +19,7 @@ const execPromise = util.promisify(exec);
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const FLOW_FILE = path.join(DATA_DIR, 'flow.json');
+const AUDIT_LOG_FILE = path.join(DATA_DIR, 'audit.log');
 
 // Initialize Express app
 const app = express();
@@ -95,6 +96,25 @@ async function saveFlowData() {
         console.log(`Saved flow data: ${flowData.nodes.length} nodes, ${flowData.edges.length} edges`);
     } catch (error) {
         console.error('Error saving flow data:', error);
+    }
+}
+
+/**
+ * Audit logging for command execution (Security feature)
+ * Logs all command executions with timestamp, IP, type, and command text
+ */
+async function auditLog(logEntry) {
+    try {
+        const timestamp = new Date().toISOString();
+        const logLine = JSON.stringify({
+            timestamp,
+            ...logEntry
+        }) + '\n';
+
+        await fs.appendFile(AUDIT_LOG_FILE, logLine, 'utf8');
+    } catch (error) {
+        console.error('Error writing to audit log:', error);
+        // Don't throw - audit logging failure shouldn't break command execution
     }
 }
 
@@ -400,12 +420,30 @@ app.get('/api/health', (req, res) => {
  * Command execution endpoint
  */
 app.post('/api/execute', async (req, res) => {
+    const clientIp = req.socket.remoteAddress || req.ip;
+
     try {
         const { command, type = 'shell' } = req.body;
 
         if (!command || typeof command !== 'string') {
+            // Log invalid command attempt
+            await auditLog({
+                ip: clientIp,
+                type: type,
+                command: command,
+                status: 'rejected',
+                reason: 'Invalid command format'
+            });
             return res.status(400).json({ error: 'Invalid command' });
         }
+
+        // Log command execution attempt
+        await auditLog({
+            ip: clientIp,
+            type: type,
+            command: command,
+            status: 'started'
+        });
 
         console.log(`Executing ${type} command: ${command}`);
 
@@ -480,8 +518,25 @@ app.post('/api/execute', async (req, res) => {
                 error = claudeError.message;
             }
         } else {
+            await auditLog({
+                ip: clientIp,
+                type: type,
+                command: command,
+                status: 'rejected',
+                reason: 'Invalid command type'
+            });
             return res.status(400).json({ error: 'Invalid command type. Use "shell" or "claude"' });
         }
+
+        // Log command completion
+        await auditLog({
+            ip: clientIp,
+            type: type,
+            command: command,
+            status: error ? 'failed' : 'success',
+            error: error || undefined,
+            outputLength: output.length
+        });
 
         res.json({
             success: !error,
@@ -494,6 +549,16 @@ app.post('/api/execute', async (req, res) => {
 
     } catch (error) {
         console.error('Error executing command:', error);
+
+        // Log unexpected error
+        await auditLog({
+            ip: clientIp,
+            type: req.body.type || 'unknown',
+            command: req.body.command || 'unknown',
+            status: 'error',
+            error: error.message
+        });
+
         res.status(500).json({
             error: 'Failed to execute command',
             message: error.message

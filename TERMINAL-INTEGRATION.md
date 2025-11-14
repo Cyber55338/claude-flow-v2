@@ -237,14 +237,50 @@ const { stdout, stderr } = await execPromise(command, {
 3. **Command validation**: Consider adding command whitelisting for production
 4. **Resource limits**: Timeout and buffer limits prevent resource exhaustion
 
-### Production Security (TODO)
+### Production Security
 
-For production deployment, add:
+#### Implemented Security Features
+
+- ✅ **Audit Logging** - All command executions are logged to `data/audit.log` with:
+  - Timestamp
+  - Client IP address
+  - Command type (shell/claude)
+  - Command text
+  - Execution status (started/success/failed/rejected/error)
+  - Error details (if applicable)
+  - Output length (for successful commands)
+
+The audit log uses JSON line format for easy parsing and analysis. Each command execution creates multiple log entries tracking the full lifecycle from start to completion.
+
+**Viewing Audit Logs:**
+
+```bash
+# View all audit logs
+cat data/audit.log
+
+# View recent logs (last 10 entries)
+tail -n 10 data/audit.log
+
+# View logs in real-time
+tail -f data/audit.log
+
+# Parse and pretty-print JSON logs
+cat data/audit.log | jq '.'
+
+# Filter failed commands
+cat data/audit.log | jq 'select(.status == "failed")'
+
+# Filter by IP address
+cat data/audit.log | jq 'select(.ip == "::1")'
+```
+
+#### Additional Security Features for Production (TODO)
+
+For enhanced production security, consider adding:
 
 - Authentication/authorization
 - Command whitelisting
 - Rate limiting
-- Audit logging
 - Sandboxed execution environment
 
 ## Files Modified
